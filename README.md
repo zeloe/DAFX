@@ -1,5 +1,5 @@
 # DAFX
- C++ implementation of Matlabscripts from the book DAFX: Digital Audio Effects from Udo Zölzer. \
+ C++ implementation of Matlabscripts from the book DAFX: Digital Audio Effects by Udo Zölzer. \
  I use [JUCE](https://juce.com/get-juce/) to debug VST3 plugins inside hosts. \
  I did this for study purposes. 
  
@@ -7,7 +7,8 @@
  - Code \
  Basic Allpassfilters \
  SineWaveLFO \
- Gain smoothing
+ Gain smoothing \
+ FIR/IIR Comb Filters
  - FX \
  WahWahEffect \
  Phasing
