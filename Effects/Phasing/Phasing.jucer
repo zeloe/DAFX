@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="YBLLfF" name="Phasing" projectType="audioplug" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
+              pluginManufacturer="CodeZen" pluginFormats="buildVST3">
+  <MAINGROUP id="OoOvEr" name="Phasing">
+    <GROUP id="{14602E24-58BA-9777-32E8-25B472F56BED}" name="Source">
+      <FILE id="qolvwM" name="PluginProcessor.cpp" compile="1" resource="0"
+            file="Source/PluginProcessor.cpp"/>
+      <FILE id="zdd1CN" name="PluginProcessor.h" compile="0" resource="0"
+            file="Source/PluginProcessor.h"/>
+      <FILE id="iu5CRB" name="PluginEditor.cpp" compile="1" resource="0"
+            file="Source/PluginEditor.cpp"/>
+      <FILE id="tNlV8R" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+    </GROUP>
+    <GROUP id="{15888741-2C5E-421C-168E-E53C2AFE4BC0}" name="Filters">
+      <FILE id="ODACWv" name="FirstOrder-Filters.h" compile="0" resource="0"
+            file="../../Filters/FirstOrder-Filters.h"/>
+      <FILE id="qvL92X" name="FirstOrder-Shelving-Filters.h" compile="0"
+            resource="0" file="../../Filters/FirstOrder-Shelving-Filters.h"/>
+      <FILE id="oFdIo5" name="SecondOrder-Filters.h" compile="0" resource="0"
+            file="../../Filters/SecondOrder-Filters.h"/>
+      <FILE id="LaPHB9" name="SecondOrder-Shelving-Filters.h" compile="0"
+            resource="0" file="../../Filters/SecondOrder-Shelving-Filters.h"/>
+    </GROUP>
+    <GROUP id="{ACE0A8F4-BCC0-9056-AB76-5F9D9D4CAF59}" name="LFO">
+      <GROUP id="{69E8BE15-2345-4D49-ED63-68FF24DF8C08}" name="WaveShapes">
+        <FILE id="mL1IOq" name="SineWave.h" compile="0" resource="0" file="../../LFO/WaveShapes/SineWave.h"/>
+      </GROUP>
+    </GROUP>
+    <GROUP id="{439DC452-4BA0-172F-4219-DBE8AF130B17}" name="Utility">
+      <FILE id="LsAjiG" name="gain_block.h" compile="0" resource="0" file="../../Utility/gain_block.h"/>
+    </GROUP>
+  </MAINGROUP>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="Phasing"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="Phasing"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../../../../../../Applications/JUCE/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+  </MODULES>
+</JUCERPROJECT>
