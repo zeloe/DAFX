@@ -4,7 +4,9 @@
  
 ## Chapter 2
  - Code \
- Basic Allpassfilters
+ Basic Allpassfilters \
+ SineWaveLFO \
+ Gain smoothing
  - FX \
  WahWahEffect \
  Phasing
