@@ -21,12 +21,11 @@ public:
     void prepare(int delayLineSize,int blocksize)
     {
         delayLine.resize(delayLineSize + 1);
-        int index = 0;
+        
         std::vector<float>::iterator ptr;
         for(ptr = delayLine.begin(); ptr < delayLine.end(); ptr++)
         {
             *ptr = 0;
-            index++;
         }
         bs = blocksize;
         current_g  = 0;

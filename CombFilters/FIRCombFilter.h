@@ -21,12 +21,12 @@ public:
     void prepare(int delayLineSize,int blocksize)
     {
         delayLine.resize(delayLineSize + 1);
-        int index = 0;
+       
         std::vector<float>::iterator ptr;
         for(ptr = delayLine.begin(); ptr < delayLine.end(); ptr++)
         {
             *ptr = 0;
-            index++;
+          
         }
         bs = blocksize;
         current_g  = 0;
@@ -34,7 +34,7 @@ public:
         current_fract = 0;
         size = delayLineSize;
     }
-    //delay should be smaller than size 
+    //delay should be smaller than size
     //g should be from -0.99 to 0.99
     void setParams(float d,float g)
     {
