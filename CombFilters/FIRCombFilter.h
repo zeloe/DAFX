@@ -9,6 +9,7 @@
 */
 
 #pragma once
+#include "../Utility/Interpolation.h"
 class FIRComb {
 public:
     FIRComb()
@@ -33,7 +34,7 @@ public:
         current_fract = 0;
         size = delayLineSize;
     }
-    //delay should be smaller than size
+    //delay should be smaller than size 
     //g should be from -0.99 to 0.99
     void setParams(float d,float g)
     {
@@ -46,47 +47,60 @@ public:
     
     void process(float* input)
     {
-        if(current_g != gain || current_delay != delay)
+        // need to fix this some artifacts....
+        if(current_delay != delay)
         {
-            inc_g = (gain - current_g) / bs;
+            
             inc_delay = (delay - current_delay) / bs;
             inc_fract = (fract - current_fract) / bs;
             for(int i = 0; i < bs; i++)
             {
-                current_g += inc_g;
+               
                 current_delay += inc_delay;
                 current_fract += inc_fract;
-                readPointer = writePointer - current_delay;
+                readPointer = (writePointer - current_delay + size);
+                readPointer = (readPointer) % size;
                 delayLine[writePointer] = input[i];
-                if (readPointer - 1 < 0)
-                {
-                    readPointer += size;
-                }
-                const float y0 = delayLine[(readPointer - 1) % size];
-                const float y1 = delayLine[(readPointer) % size];
-                
-                const float x_est = (1.0 - current_fract) * y0 + current_fract * y1;
+                const float y0 = delayLine[(readPointer) % size];
+                const float y1 = delayLine[(readPointer + 1) % size];
+                const float y2 = delayLine[(readPointer + 2) % size];
+                const float y3 = delayLine[(readPointer + 3) % size];
+                //less artifacts with higher interpolation methods
+                const float x_est = splineInterpolation(y0, y1, y2, y3, current_fract);
                 writePointer++;
                 if (writePointer >= size)
                 {
                     writePointer = 0;
                 }
-                input[i] = input[i] + x_est * current_g;
+                input[i] = input[i] + x_est * gain;
             }
-            current_g = gain;
+            
             current_delay = delay;
             current_fract = fract;
-        } else {
+        } else if (current_g != gain) {
+            inc_g = (gain - current_g) / bs;
             for(int i = 0; i < bs; i++)
             {
+                current_g += inc_g;
                 delayLine[writePointer] = input[i];
-                readPointer = (writePointer - int(delay) - 1 + size) % size;
+                readPointer = (writePointer - int(delay) + size) % size;
                 const float y0 = delayLine[readPointer];
-                input[i] = input[i] + y0 * gain;
+                input[i] = input[i] + y0 * current_g;
                 writePointer = (writePointer + 1) % size;
-
+                
             }
-        }
+            current_g = gain;
+        } else {
+                for(int i = 0; i < bs; i++)
+                {
+                    delayLine[writePointer] = input[i];
+                    readPointer = (writePointer - int(delay) + size) % size;
+                    const float y0 = delayLine[readPointer];
+                    input[i]  = input[i] + y0 * gain;
+                    writePointer = (writePointer + 1) % size;
+
+                }
+            }
     }
     
     
