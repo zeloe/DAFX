@@ -8,7 +8,8 @@
  Basic Allpassfilters \
  SineWaveLFO \
  Gain smoothing \
- FIR/IIR Comb Filters
+ FIR/IIR Comb Filters \
+ Interpolation
  - FX \
  WahWahEffect \
  Phasing
