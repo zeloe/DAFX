@@ -36,3 +36,8 @@ inline float splineInterpolation(float y0, float y1, float y2, float y3, float t
     return a0 * t * t2 + a1 * t2 + a2 * t + a3;
 }
 
+
+inline float allPassInterpolation(float y0, float y1, float ya_alt, float t)
+{
+    return  y1 + (1.0 - t) * y0 - (1.0 - t) * ya_alt;
+}
