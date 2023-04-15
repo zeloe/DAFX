@@ -6,3 +6,5 @@
 **/Tests
 **/Effects/Vibrato/Builds
 **/Effects/Vibrato/JuceLibraryCode
+**/Effects/MultiBandEffect/Builds
+**/Effects/MultiBandEffect/JuceLibraryCode
