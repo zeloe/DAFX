@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="gGSmXZ" name="MultiBandEffect" projectType="audioplug" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
+              pluginFormats="buildVST3" pluginManufacturer="CodeZen">
+  <MAINGROUP id="EnYqeS" name="MultiBandEffect">
+    <GROUP id="{A88F4D2F-F80E-3A4F-5045-F28960CE91FE}" name="Source">
+      <FILE id="WVNibp" name="PluginProcessor.cpp" compile="1" resource="0"
+            file="Source/PluginProcessor.cpp"/>
+      <FILE id="alDrWN" name="PluginProcessor.h" compile="0" resource="0"
+            file="Source/PluginProcessor.h"/>
+      <FILE id="jPKf47" name="PluginEditor.cpp" compile="1" resource="0"
+            file="Source/PluginEditor.cpp"/>
+      <FILE id="njDZkr" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+    </GROUP>
+    <GROUP id="{46C6E3D4-774E-490D-6124-1C527F6680CB}" name="CombFilters">
+      <FILE id="dAKu9i" name="FIRCombFilter.h" compile="0" resource="0" file="../../CombFilters/FIRCombFilter.h"/>
+      <FILE id="MJCy4i" name="IIRCombFilter.h" compile="0" resource="0" file="../../CombFilters/IIRCombFilter.h"/>
+      <FILE id="O8lzUL" name="UniversalCombFilter.h" compile="0" resource="0"
+            file="../../CombFilters/UniversalCombFilter.h"/>
+    </GROUP>
+    <GROUP id="{22B34727-F009-E805-2016-0349D558B962}" name="LFO">
+      <GROUP id="{7C7627D0-2789-6987-CFD2-BDD0B8DF070E}" name="WaveShapes">
+        <FILE id="Ib1GOf" name="SineWave.h" compile="0" resource="0" file="../../LFO/WaveShapes/SineWave.h"/>
+      </GROUP>
+    </GROUP>
+    <GROUP id="{E0887557-F09C-A555-EFFF-84A36AF03AF9}" name="Filters">
+      <FILE id="Mj75l6" name="FirstOrder-Filters.h" compile="0" resource="0"
+            file="../../Filters/FirstOrder-Filters.h"/>
+      <FILE id="HlMT9H" name="FirstOrder-Shelving-Filters.h" compile="0"
+            resource="0" file="../../Filters/FirstOrder-Shelving-Filters.h"/>
+      <FILE id="IxIhaO" name="SecondOrder-Filters.h" compile="0" resource="0"
+            file="../../Filters/SecondOrder-Filters.h"/>
+      <FILE id="t67ii1" name="SecondOrder-Shelving-Filters.h" compile="0"
+            resource="0" file="../../Filters/SecondOrder-Shelving-Filters.h"/>
+    </GROUP>
+    <GROUP id="{2572FAEE-6213-50DF-BC9A-7676FC557157}" name="Utility">
+      <FILE id="bJptTQ" name="gain_block.h" compile="0" resource="0" file="../../Utility/gain_block.h"/>
+      <FILE id="T68Jyl" name="Interpolation.h" compile="0" resource="0" file="../../Utility/Interpolation.h"/>
+    </GROUP>
+  </MAINGROUP>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="MultiBandEffect"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="MultiBandEffect"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../../../../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../../../../../../Applications/JUCE/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+  </MODULES>
+</JUCERPROJECT>
