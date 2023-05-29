@@ -22,7 +22,10 @@ VibratoAudioProcessor::VibratoAudioProcessor()
                        ),treeState(*this, nullptr, "PARAMETERS", createParameterLayout())
 #endif
 {
-    sine_LFO = std::make_unique<SineWave>(512);
+    //Not really sure about shared pointers
+    sineData = std::make_shared<Sine>();
+    sine_LFO = std::make_shared<WaveTableOscillator<Sine>>(sineData);
+
     delayL = std::make_unique<DelayLine>();
     delayR = std::make_unique<DelayLine>();
     dryL = std::make_unique<Gain_Block>();
@@ -190,8 +193,8 @@ void VibratoAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     wetL->setGain(*mix);
     wetL->process(wetLeft);
     
-    sine_LFO->setFreq(*lfo_freq);
-    delayL->setParams(*width + 1 +sine_LFO->process() * *width);
+    sine_LFO->setFrequency(*lfo_freq);
+    delayL->setParams(*width + 1 +sine_LFO->getNextSample() * *width);
     delayL->process(wetLeft);
     float* outLeft = buffer.getWritePointer(0);
     for(int i = 0; i < buffer.getNumSamples(); i++)
@@ -214,8 +217,8 @@ void VibratoAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     wetR->setGain(*mix);
     wetR->process(wetRight);
     
-    sine_LFO->setFreq(*lfo_freq);
-    delayR->setParams(*width + 1 +sine_LFO->process() * *width);
+    sine_LFO->setFrequency(*lfo_freq);
+    delayR->setParams(*width + 1 +sine_LFO->getNextSample() * *width);
     delayR->process(wetRight);
     float* outRight = buffer.getWritePointer(1);
     for(int i = 0; i < buffer.getNumSamples(); i++)

@@ -20,6 +20,14 @@
       <FILE id="Wdp1vz" name="gain_block.h" compile="0" resource="0" file="../../Utility/gain_block.h"/>
       <FILE id="SM4rOn" name="Interpolation.h" compile="0" resource="0" file="../../Utility/Interpolation.h"/>
     </GROUP>
+    <GROUP id="{606F44F2-1A84-AACC-48D2-4E81F28C55E3}" name="WaveShapes">
+      <FILE id="wCP13E" name="Sawtooth.h" compile="0" resource="0" file="../../LFO/WaveShapes/Sawtooth.h"/>
+      <FILE id="Sob2rW" name="Sine.h" compile="0" resource="0" file="../../LFO/WaveShapes/Sine.h"/>
+      <FILE id="hmw6Hi" name="Square.h" compile="0" resource="0" file="../../LFO/WaveShapes/Square.h"/>
+      <FILE id="DwmC65" name="Triangle.h" compile="0" resource="0" file="../../LFO/WaveShapes/Triangle.h"/>
+    </GROUP>
+    <FILE id="qnkxgZ" name="WaveTableOscillator.h" compile="0" resource="0"
+          file="../../LFO/WaveTableOscillator.h"/>
   </MAINGROUP>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>

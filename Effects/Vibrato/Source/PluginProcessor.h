@@ -10,8 +10,9 @@
 
 #include <JuceHeader.h>
 #include "../../../DelayLine/DelayLine.h"
-#include "../../../LFO/WaveShapes/SineWave.h"
+#include "../../../LFO/WaveTableOscillator.h"
 #include "../../../Utility/gain_block.h"
+#include "../../../LFO/WaveShapes/Sine.h"
 //==============================================================================
 /**
 */
@@ -61,8 +62,8 @@ public:
 private:
     
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-
-    std::unique_ptr<SineWave> sine_LFO;
+    std::shared_ptr<Sine> sineData;
+    std::shared_ptr<WaveTableOscillator<Sine>> sine_LFO;
     std::unique_ptr<DelayLine> delayL;
     std::unique_ptr<DelayLine> delayR;
     
