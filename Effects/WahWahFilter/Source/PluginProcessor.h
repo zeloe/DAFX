@@ -11,7 +11,8 @@
 #include <JuceHeader.h>
 #include "../../../Filters/SecondOrder-Filters.h"
 #include "../../../Utility/gain_block.h"
-#include "../../../LFO/WaveShapes/SineWave.h"
+#include "../../../LFO/WaveTableOscillator.h"
+#include "../../../LFO/WaveShapes/Sine.h"
 //==============================================================================
 /**
 */
@@ -67,7 +68,8 @@ private:
     std::unique_ptr<Gain_Block> gainBlockWetR;
     std::unique_ptr<BandpassFilter> bandpassL;
     std::unique_ptr<BandpassFilter> bandpassR;
-    std::unique_ptr<SineWave> waveTable;
+    std::shared_ptr<Sine> sineData;
+    std::shared_ptr<WaveTableOscillator<Sine>> sine_LFO;
     std::atomic<float>* mix = nullptr;
     std::atomic<float>* lfo_freq = nullptr;
     std::atomic<float>* bw = nullptr;

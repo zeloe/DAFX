@@ -24,8 +24,14 @@
             resource="0" file="../../Filters/SecondOrder-Shelving-Filters.h"/>
     </GROUP>
     <GROUP id="{D841547E-FE89-30E5-A24A-44541AF2B1B2}" name="LFO">
+      <FILE id="xoAk5G" name="WaveTableOscillator.h" compile="0" resource="0"
+            file="../../LFO/WaveTableOscillator.h"/>
       <GROUP id="{989343AE-98FF-04E3-4A9E-FF33CA0C99F6}" name="WaveShapes">
-        <FILE id="pjyrpE" name="SineWave.h" compile="0" resource="0" file="../../LFO/WaveShapes/SineWave.h"/>
+        <FILE id="dfwop8" name="Hanning.h" compile="0" resource="0" file="../../LFO/WaveShapes/Hanning.h"/>
+        <FILE id="U55XMi" name="Sawtooth.h" compile="0" resource="0" file="../../LFO/WaveShapes/Sawtooth.h"/>
+        <FILE id="XjRing" name="Sine.h" compile="0" resource="0" file="../../LFO/WaveShapes/Sine.h"/>
+        <FILE id="K4Kxqa" name="Square.h" compile="0" resource="0" file="../../LFO/WaveShapes/Square.h"/>
+        <FILE id="ZIfN4p" name="Triangle.h" compile="0" resource="0" file="../../LFO/WaveShapes/Triangle.h"/>
       </GROUP>
     </GROUP>
     <GROUP id="{EB514501-9E4C-21BF-845F-A7AE69EBCEDA}" name="Utility">

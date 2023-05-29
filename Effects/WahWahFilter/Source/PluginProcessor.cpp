@@ -28,7 +28,9 @@ WahWahFilterAudioProcessor::WahWahFilterAudioProcessor()
     gainBlockWetR = std::make_unique<Gain_Block>();
     bandpassL = std::make_unique<BandpassFilter>();
     bandpassR = std::make_unique<BandpassFilter>();
-    waveTable = std::make_unique<SineWave>(512);
+    //not really sure about shared pointers
+    sineData = std::make_shared<Sine>();
+    sine_LFO = std::make_shared<WaveTableOscillator<Sine>>(sineData);
     mix = treeState.getRawParameterValue("Mix");
     lfo_freq = treeState.getRawParameterValue("LFO_Freq");
     bw  = treeState.getRawParameterValue("BandWidth");
@@ -50,7 +52,7 @@ WahWahFilterAudioProcessor::createParameterLayout()
     
         auto P_Mix = (std::make_unique<juce::AudioParameterFloat>("Mix","Mix",0.0,1.0,0.5));
         params.push_back(std::move(P_Mix));
-        auto P_LFO_Freq = (std::make_unique<juce::AudioParameterFloat>("LFO_Freq","LFO_Freq",2,10,5));
+        auto P_LFO_Freq = (std::make_unique<juce::AudioParameterFloat>("LFO_Freq","LFO_Freq",2,30,5));
         params.push_back(std::move(P_LFO_Freq));
         auto P_BandWidth = (std::make_unique<juce::AudioParameterFloat>("BandWidth","BandWidth",10,100,50));
         params.push_back(std::move(P_BandWidth));
@@ -136,7 +138,7 @@ void WahWahFilterAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
     gainBlockWetR->prepare(samplesPerBlock);
     bandpassL->prepare(sampleRate, samplesPerBlock);
     bandpassR->prepare(sampleRate, samplesPerBlock);
-    waveTable->prepare(sampleRate, samplesPerBlock);
+    sine_LFO->prepare(sampleRate, samplesPerBlock);
     LeftDry.setSize(1, samplesPerBlock);
     LeftWet.setSize(1, samplesPerBlock);
     RightDry.setSize(1, samplesPerBlock);
@@ -189,8 +191,8 @@ void WahWahFilterAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     float* wetLeft = LeftWet.getWritePointer(0);
     gainBlockWetL->process(wetLeft);
     
-    waveTable->setFreq(*lfo_freq);
-    bandpassL->setParams(*cf + waveTable->process() * *depth, *bw);
+    sine_LFO->setFrequency(*lfo_freq);
+    bandpassL->setParams(*cf + sine_LFO->getNextSample() * *depth, *bw);
     bandpassL->process(wetLeft);
     float* outLeft = buffer.getWritePointer(0);
     for(int i = 0; i < buffer.getNumSamples(); i++)
@@ -209,8 +211,8 @@ void WahWahFilterAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     gainBlockWetR->setGain(*mix);
     gainBlockWetR->process(wetRight);
     
-    waveTable->setFreq(*lfo_freq);
-    bandpassR->setParams(*cf + waveTable->process() * *depth, *bw);
+    sine_LFO->setFrequency(*lfo_freq);
+    bandpassR->setParams(*cf + sine_LFO->getNextSample() * *depth, *bw);
     bandpassR->process(wetRight);
     float* outRight = buffer.getWritePointer(1);
     for(int i = 0; i < buffer.getNumSamples(); i++)
