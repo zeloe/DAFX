@@ -24,24 +24,25 @@ PhasingAudioProcessor::PhasingAudioProcessor()
 {
     dryL = std::make_unique<Gain_Block>();
     wetL = std::make_unique<Gain_Block>();
-    filterL1 = std::make_unique<BandrecjectFilter>();
-    filterL2 = std::make_unique<BandrecjectFilter>();
-    filterL3 = std::make_unique<BandrecjectFilter>();
+    filterL1 = std::make_unique<SecondOrder_Butterworth_bandstop>();
+    filterL2 = std::make_unique<SecondOrder_Butterworth_bandstop>();
+    filterL3 = std::make_unique<SecondOrder_Butterworth_bandstop>();
    
     
     dryR = std::make_unique<Gain_Block>();
     wetR = std::make_unique<Gain_Block>();
     dryR = std::make_unique<Gain_Block>();
     wetR = std::make_unique<Gain_Block>();
-    filterR1 = std::make_unique<BandrecjectFilter>();
-    filterR2 = std::make_unique<BandrecjectFilter>();
-    filterR3 = std::make_unique<BandrecjectFilter>();
-    waveTable = std::make_unique<SineWave>(512);
-    mix = treeState.getRawParameterValue("Mix");
+    filterR1 = std::make_unique<SecondOrder_Butterworth_bandstop>();
+    filterR2 = std::make_unique<SecondOrder_Butterworth_bandstop>();
+    filterR3 = std::make_unique<SecondOrder_Butterworth_bandstop>();
+    //not really sure about shared pointers
+    hannData = std::make_shared<Hanning>();
+    possine_LFO = std::make_shared<WaveTableOscillator<Hanning>>(hannData);
+    
+    triData = std::make_shared<Triangle>();
+    tri_LFO = std::make_shared<WaveTableOscillator<Triangle>>(triData);
     lfo_freq = treeState.getRawParameterValue("LFO_Freq");
-    bandwidth = treeState.getRawParameterValue("BandWidth");
-    depth = treeState.getRawParameterValue("Depth");
-    cf = treeState.getRawParameterValue("CenterFrequency");
 }
 
 PhasingAudioProcessor::~PhasingAudioProcessor()
@@ -55,19 +56,9 @@ PhasingAudioProcessor::createParameterLayout()
     // you could also use a array with strings and add them in a for loop
     std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
     
-        auto P_Mix = (std::make_unique<juce::AudioParameterFloat>("Mix","Mix",0.0,1.0,0.5));
-        params.push_back(std::move(P_Mix));
-        auto P_LFO_Freq = (std::make_unique<juce::AudioParameterFloat>("LFO_Freq","LFO_Freq",0.1,10,0.5));
+        
+        auto P_LFO_Freq = (std::make_unique<juce::AudioParameterFloat>("LFO_Freq","LFO_Freq",0.1,1.0,0.5));
         params.push_back(std::move(P_LFO_Freq));
-        auto P_BandWidth = (std::make_unique<juce::AudioParameterFloat>("BandWidth","BandWidth",10,99,50));
-        params.push_back(std::move(P_BandWidth));
-        auto P_Depth = (std::make_unique<juce::AudioParameterFloat>("Depth","Depth",10,100,50));
-        params.push_back(std::move(P_Depth));
-        auto P_Center_Freq = (std::make_unique<juce::AudioParameterFloat>("CenterFrequency","CenterFrequency",100,16000,500));
-        params.push_back(std::move(P_Center_Freq));
-    
-    
-    
     return {params.begin(),params.end()};
 }
 
@@ -141,19 +132,23 @@ void PhasingAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
     filterL1->prepare(sampleRate, samplesPerBlock);
     filterL2->prepare(sampleRate, samplesPerBlock);
     filterL3->prepare(sampleRate, samplesPerBlock);
-    waveTable->prepare(sampleRate, samplesPerBlock);
-    
+    possine_LFO->prepare(sampleRate, samplesPerBlock);
+    tri_LFO->prepare(sampleRate, samplesPerBlock);
     dryR->prepare(samplesPerBlock);
     wetR->prepare(samplesPerBlock);
     filterR1->prepare(sampleRate, samplesPerBlock);
     filterR2->prepare(sampleRate, samplesPerBlock);
     filterR3->prepare(sampleRate, samplesPerBlock);
     
-    LeftDry.setSize(1, samplesPerBlock);
-    LeftWet.setSize(1, samplesPerBlock);
     
-    RightDry.setSize(1, samplesPerBlock);
+    LeftWet.setSize(1, samplesPerBlock);
+    LeftWet2.setSize(1, samplesPerBlock);
+    LeftWet3.setSize(1, samplesPerBlock);
+   
     RightWet.setSize(1, samplesPerBlock);
+    RightWet2.setSize(1, samplesPerBlock);
+    RightWet3.setSize(1, samplesPerBlock);
+    
     
     
 }
@@ -195,26 +190,28 @@ void PhasingAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     juce::ScopedNoDenormals noDenormals;
     
     
-    LeftDry.copyFrom(0, 0, buffer, 0, 0, buffer.getNumSamples());
     LeftWet.copyFrom(0, 0, buffer, 0, 0, buffer.getNumSamples());
+    LeftWet2.copyFrom(0, 0, buffer, 0, 0, buffer.getNumSamples());
+    LeftWet3.copyFrom(0, 0, buffer, 0, 0, buffer.getNumSamples());
     
-    float* dryLeft = LeftDry.getWritePointer(0);
-    dryL->setGain(1.0 - *mix);
-    dryL->process(dryLeft);
-    wetL->setGain(*mix);
     float* wetLeft = LeftWet.getWritePointer(0);
-    wetL->process(wetLeft);
+   
+    float* wetLeft2 = LeftWet2.getWritePointer(0);
     
-    
-    waveTable->setFreq(*lfo_freq);
-    filterL1->setParams(*cf + 100 + waveTable->process() *  *depth, *bandwidth);
+    float* wetLeft3 = LeftWet3.getWritePointer(0);
+    //change this 
+    float bw = 5;
+    possine_LFO->setFrequency(*lfo_freq);
+    filterL1->setParams( 1000+ possine_LFO->getNextSample() * 1000 + 100,bw);
     filterL1->process(wetLeft);
-    waveTable->setFreq(*lfo_freq + 0.1);
-    filterL2->setParams(*cf + 200 + waveTable->process() * *depth, *bandwidth);
-    filterL2->process(wetLeft);
-    waveTable->setFreq(*lfo_freq + 0.2);
-    filterL3->setParams(*cf + 300 + waveTable->process() * *depth, *bandwidth);
-    filterL3->process(wetLeft);
+   
+    possine_LFO->setFrequency(*lfo_freq);
+    filterL2->setParams(2000+ possine_LFO->getNextSample() * 1000 + 100,  bw);
+    filterL2->process(wetLeft2);
+  
+    possine_LFO->setFrequency(*lfo_freq);
+    filterL3->setParams(3000+ possine_LFO->getNextSample() * 1000 + 100 , bw);
+    filterL3->process(wetLeft3);
    
    
    
@@ -222,30 +219,31 @@ void PhasingAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     float* outLeft = buffer.getWritePointer(0);
     for(int i = 0; i < buffer.getNumSamples(); i++)
     {
-        outLeft[i] = wetLeft[i] + dryLeft[i];
+        outLeft[i] = (wetLeft[i] + wetLeft2[i] + wetLeft3[i]);
     }
     
     
-    RightDry.copyFrom(0, 0, buffer, 1, 0, buffer.getNumSamples());
     RightWet.copyFrom(0, 0, buffer, 1, 0, buffer.getNumSamples());
-    
-    float* dryRight = RightDry.getWritePointer(0);
-    dryR->setGain(1.0 - *mix);
-    dryR->process(dryRight);
-    wetR->setGain(*mix);
+    RightWet2.copyFrom(0, 0, buffer, 1, 0, buffer.getNumSamples());
+    RightWet3.copyFrom(0, 0, buffer, 1, 0, buffer.getNumSamples());
+   
     float* wetRight = RightWet.getWritePointer(0);
-    wetR->process(wetRight);
     
+    float* wetRight2 = RightWet2.getWritePointer(0);
     
-    waveTable->setFreq(*lfo_freq);
-    filterR1->setParams(*cf + 100 +  waveTable->process() *  *depth, *bandwidth);
+    float* wetRight3 = RightWet3.getWritePointer(0);
+    
+    possine_LFO->setFrequency(*lfo_freq);
+    filterR1->setParams(1000+ possine_LFO->getNextSample() * 1000 + 100, bw);
     filterR1->process(wetRight);
-    waveTable->setFreq(*lfo_freq + 0.1);
-    filterR2->setParams(*cf + 200 +   waveTable->process() * *depth, *bandwidth);
-    filterR2->process(wetRight);
-    waveTable->setFreq(*lfo_freq + 0.2);
-    filterR3->setParams(*cf + 300 +  waveTable->process() * *depth, *bandwidth);
-    filterR3->process(wetRight);
+    
+    possine_LFO->setFrequency(*lfo_freq);
+    filterR2->setParams( 2000 + possine_LFO->getNextSample() * 1000 + 100, bw);
+    filterR2->process(wetRight2);
+    
+    possine_LFO->setFrequency(*lfo_freq);
+    filterR3->setParams(3000+ possine_LFO->getNextSample() * 1000 + 100, bw);
+    filterR3->process(wetRight3);
    
    
    
@@ -253,7 +251,7 @@ void PhasingAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     float* outRight = buffer.getWritePointer(1);
     for(int i = 0; i < buffer.getNumSamples(); i++)
     {
-        outRight[i] = wetRight[i] + dryRight[i];
+        outRight[i] = (wetRight[i] + wetRight2[i]  + wetRight3[i]);
     }
     
 }

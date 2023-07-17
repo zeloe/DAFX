@@ -10,8 +10,11 @@
 
 #include <JuceHeader.h>
 #include "../../../Filters/SecondOrder-Filters.h"
+#include "../../../Filters/SecondOrder-butterworth-bandstop.h"
 #include "../../../Utility/gain_block.h"
-#include "../../../LFO/WaveShapes/SineWave.h"
+#include "../../../LFO/WaveTableOscillator.h"
+#include "../../../LFO/WaveShapes/Hanning.h"
+#include "../../../LFO/WaveShapes/Triangle.h"
 //==============================================================================
 /**
 */
@@ -66,31 +69,33 @@ private:
     std::unique_ptr<Gain_Block> wetL;
     
     
-    std::unique_ptr<BandrecjectFilter> filterL1;
-    std::unique_ptr<BandrecjectFilter> filterL2;
-    std::unique_ptr<BandrecjectFilter> filterL3;
+    std::unique_ptr<SecondOrder_Butterworth_bandstop> filterL1;
+    std::unique_ptr<SecondOrder_Butterworth_bandstop> filterL2;
+    std::unique_ptr<SecondOrder_Butterworth_bandstop> filterL3;
     
    
    
     std::unique_ptr<Gain_Block> dryR;
     std::unique_ptr<Gain_Block> wetR;
     
-    std::unique_ptr<BandrecjectFilter> filterR1;
-    std::unique_ptr<BandrecjectFilter> filterR2;
-    std::unique_ptr<BandrecjectFilter> filterR3;
+    std::unique_ptr<SecondOrder_Butterworth_bandstop> filterR1;
+    std::unique_ptr<SecondOrder_Butterworth_bandstop> filterR2;
+    std::unique_ptr<SecondOrder_Butterworth_bandstop> filterR3;
+    std::shared_ptr<Hanning> hannData;
+    std::shared_ptr<WaveTableOscillator<Hanning>> possine_LFO;
+    std::shared_ptr<Triangle> triData;
+    std::shared_ptr<WaveTableOscillator<Triangle>> tri_LFO;
     
-    std::unique_ptr<SineWave> waveTable;
     
-    juce::AudioBuffer<float> LeftDry;
+   
     juce::AudioBuffer<float> LeftWet;
-    juce::AudioBuffer<float> RightDry;
+    juce::AudioBuffer<float> LeftWet2;
+    juce::AudioBuffer<float> LeftWet3;
     juce::AudioBuffer<float> RightWet;
-    
-    std::atomic<float>* mix = nullptr;
+    juce::AudioBuffer<float> RightWet2;
+    juce::AudioBuffer<float> RightWet3;
+   
     std::atomic<float>* lfo_freq = nullptr;
-    std::atomic<float>* bandwidth = nullptr;
-    std::atomic<float>* cf = nullptr;
-    std::atomic<float>* depth = nullptr;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PhasingAudioProcessor)
 };

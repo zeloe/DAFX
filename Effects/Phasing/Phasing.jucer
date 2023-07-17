@@ -18,14 +18,22 @@
             file="../../Filters/FirstOrder-Filters.h"/>
       <FILE id="qvL92X" name="FirstOrder-Shelving-Filters.h" compile="0"
             resource="0" file="../../Filters/FirstOrder-Shelving-Filters.h"/>
+      <FILE id="V9uZAP" name="SecondOrder-butterworth-bandstop.h" compile="0"
+            resource="0" file="../../Filters/SecondOrder-butterworth-bandstop.h"/>
       <FILE id="oFdIo5" name="SecondOrder-Filters.h" compile="0" resource="0"
             file="../../Filters/SecondOrder-Filters.h"/>
       <FILE id="LaPHB9" name="SecondOrder-Shelving-Filters.h" compile="0"
             resource="0" file="../../Filters/SecondOrder-Shelving-Filters.h"/>
     </GROUP>
     <GROUP id="{ACE0A8F4-BCC0-9056-AB76-5F9D9D4CAF59}" name="LFO">
+      <FILE id="VRbTaa" name="WaveTableOscillator.h" compile="0" resource="0"
+            file="../../LFO/WaveTableOscillator.h"/>
       <GROUP id="{69E8BE15-2345-4D49-ED63-68FF24DF8C08}" name="WaveShapes">
-        <FILE id="mL1IOq" name="SineWave.h" compile="0" resource="0" file="../../LFO/WaveShapes/SineWave.h"/>
+        <FILE id="cuZvsj" name="Sawtooth.h" compile="0" resource="0" file="../../LFO/WaveShapes/Sawtooth.h"/>
+        <FILE id="rCvV9i" name="Hanning.h" compile="0" resource="0" file="../../LFO/WaveShapes/Hanning.h"/>
+        <FILE id="qyJynM" name="Sine.h" compile="0" resource="0" file="../../LFO/WaveShapes/Sine.h"/>
+        <FILE id="mVVErV" name="Square.h" compile="0" resource="0" file="../../LFO/WaveShapes/Square.h"/>
+        <FILE id="RFmf0m" name="Triangle.h" compile="0" resource="0" file="../../LFO/WaveShapes/Triangle.h"/>
       </GROUP>
     </GROUP>
     <GROUP id="{439DC452-4BA0-172F-4219-DBE8AF130B17}" name="Utility">

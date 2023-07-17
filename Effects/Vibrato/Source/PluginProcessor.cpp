@@ -49,10 +49,10 @@ VibratoAudioProcessor::createParameterLayout()
     // create parameters
     // you could also use a array with strings and add them in a for loop
     std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
-    auto pParam = (std::make_unique<juce::AudioParameterFloat>("Mod_Freq","Mod_Freq",0.1,30,0.1));
+    auto pParam = (std::make_unique<juce::AudioParameterFloat>("Mod_Freq","Mod_Freq",0.1,30,2.0));
     //Width sould < delayLineSize
-    auto pParam2 = (std::make_unique<juce::AudioParameterFloat>("Width","Width",10,10000,1000));
-    auto pParam3 = (std::make_unique<juce::AudioParameterFloat>("Mix","Mix",0,1,0.75));
+    auto pParam2 = (std::make_unique<juce::AudioParameterFloat>("Width","Width",100,10000,100));
+    auto pParam3 = (std::make_unique<juce::AudioParameterFloat>("Mix","Mix",0,1,0.5));
     params.push_back(std::move(pParam));
     params.push_back(std::move(pParam2));
     params.push_back(std::move(pParam3));
