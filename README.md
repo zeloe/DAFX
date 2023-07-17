@@ -12,9 +12,8 @@
  Interpolation
  - FX \
  WahWahEffect \
- Phasing \
+ Phasing \ 
  Vibrato \
  MultiBandEffect
 
 ## Not Working
-- Phasing isn't very audible, only with white noise, maybe a higher order notch filter will do
