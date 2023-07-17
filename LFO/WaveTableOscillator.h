@@ -10,6 +10,7 @@
 
 #pragma once
 #include "JuceHeader.h"
+#include "../Utility/Interpolation.h"
 template<typename WaveShape>
 class WaveTableOscillator
 {
@@ -44,35 +45,44 @@ public:
         if(tableDelta != lastTableDelta)
         {
             increment = (tableDelta - lastTableDelta) / bs;
-            tableDelta += increment;
-            auto index0 = (unsigned int) currentIndex;
-            auto index1 = index0 + 1;
-            
-            auto frac = currentIndex - (float) index0;
-            
-            auto* table = wavetable->getReadPointer (0);
-            auto value0 = table[index0];
-            auto value1 = table[index1];
-            
-            currentSample = (value0 + frac * (value1 - value0));
-            if ((currentIndex += tableDelta) > (float) tableSize)
-                currentIndex -= (float) tableSize;
+            for(int i = 0; i < bs; i++)
+            {
+                tableDelta += increment;
+                auto index0 = (unsigned int) currentIndex;
+                auto index1 = index0 + 1;
+                auto index2 = index0 + 2;
+                auto index3 = index0 + 3;
+                auto frac = currentIndex - (float) index0;
+                
+                auto* table = wavetable->getReadPointer (0);
+                auto value0 = table[index0 % tableSize];
+                auto value1 = table[index1 % tableSize];
+                auto value2 = table[index2 % tableSize];
+                auto value3 = table[index3 % tableSize];
+                currentSample = cubicInterpolation(value0, value1, value2, value3, frac);
+                if ((currentIndex += tableDelta) > (float) tableSize)
+                    currentIndex -= (float) tableSize;
+            }
             lastTableDelta = tableDelta;
         }
         else
         {
-            auto index0 = (unsigned int) currentIndex;
-            auto index1 = index0 + 1;
-            
-            auto frac = currentIndex - (float) index0;
-            
-            auto* table = wavetable->getReadPointer (0);
-            auto value0 = table[index0];
-            auto value1 = table[index1];
-            
-            currentSample = (value0 + frac * (value1 - value0));
-            if ((currentIndex += tableDelta) > (float) tableSize)
-                currentIndex -= (float) tableSize;
+            for(int i = 0; i < bs; i++)
+            {
+                auto index0 = (unsigned int) currentIndex;
+                auto index1 = index0 + 1;
+                auto index2 = index0 + 2;
+                auto index3 = index0 + 3;
+                auto frac = currentIndex - (float) index0;
+                auto* table = wavetable->getReadPointer (0);
+                auto value0 = table[index0 % tableSize];
+                auto value1 = table[index1 % tableSize];
+                auto value2 = table[index2 % tableSize];
+                auto value3 = table[index3 % tableSize];
+                currentSample = cubicInterpolation(value0, value1, value2, value3, frac);
+                if ((currentIndex += tableDelta) > (float) tableSize)
+                    currentIndex -= (float) tableSize;
+            }
         }
         
         return currentSample;
