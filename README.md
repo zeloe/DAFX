@@ -17,3 +17,7 @@
  MultiBandEffect
 
 ## Not Working
+
+
+## Soon
+Migrating to cmake
