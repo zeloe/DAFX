@@ -28,8 +28,8 @@ public:
         for(ptr = delayBuf.begin(); ptr < delayBuf.end(); ptr++)
         {
             *ptr  = 0;
-            bs = blocksize;
         }
+        bs = blocksize;
         current_delay = 0;
         size = delayLineSize;
         output = 0;
@@ -54,19 +54,24 @@ public:
             {
                 current_delay += inc_delay;
                 current_fract += inc_fract;
-                readPointer = (writePointer - current_delay + size);
-                readPointer = (readPointer) % size;
+                readPointer = (writePointer - current_delay);
                 delayBuf[writePointer] = input[i];
-                const float y0 = delayBuf[readPointer % size];
-                const float y1 = delayBuf[(readPointer + 1) % size];
-                ya_alt = output;
+                if (readPointer - 3 < 0)
+                {
+                    readPointer += size;
+                }
+                const float y0 = delayBuf[(readPointer - 3 + size) % size];
+                const float y1 = delayBuf[(readPointer - 2 + size) % size];
+                const float y2 = delayBuf[(readPointer - 1 + size) % size];
+                const float y3 = delayBuf[(readPointer + size) % size];
                 
-                output = allPassInterpolation(y0, y1, ya_alt, current_fract);
+                output = cubicInterpolation(y0, y1, y2, y3, current_fract);
                 input[i] = output;
                 writePointer = (writePointer + 1) % size;
                
             }
             current_delay = delay;
+            current_fract = fract;
         }
         else
         {
@@ -94,5 +99,4 @@ private:
     unsigned int writePointer = 0;
     float output = 0;
     int size = 0;
-    float ya_alt = 0;
 };
