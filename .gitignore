@@ -1,10 +1,4 @@
 **/.DS_Store
-**/Effects/Phasing/Builds
-**/Effects/Phasing/JuceLibraryCode
-**/Effects/WahWahFilter/Builds
-**/Effects/WahWahFilter/JuceLibraryCode
-**/Tests
-**/Effects/Vibrato/Builds
-**/Effects/Vibrato/JuceLibraryCode
-**/Effects/MultiBandEffect/Builds
-**/Effects/MultiBandEffect/JuceLibraryCode
+**/Effects
+**/test
+**/copy_source
