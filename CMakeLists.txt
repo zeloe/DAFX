@@ -34,15 +34,15 @@ juce_add_plugin(${TARGET_NAME}
 		# VERSION ...                               # Set this if the plugin version is different to the project version
 		# ICON_BIG ...                              # ICON_* arguments specify a path to an image file to use as an icon for the Standalone
 		# ICON_SMALL ...
-		COMPANY_NAME "RAISE"
+		COMPANY_NAME "ZELOE"
 		# IS_SYNTH TRUE/FALSE                       # Is this a synth or an effect?
 		# NEEDS_MIDI_INPUT TRUE/FALSE               # Does the plugin need midi input?
 		# NEEDS_MIDI_OUTPUT TRUE/FALSE              # Does the plugin need midi output?
 		# IS_MIDI_EFFECT TRUE/FALSE                 # Is this plugin a MIDI effect?
 		# EDITOR_WANTS_KEYBOARD_FOCUS TRUE/FALSE    # Does the editor need keyboard focus?
 		# COPY_PLUGIN_AFTER_BUILD TRUE/FALSE        # Should the plugin be installed to a default location after building?
-		PLUGIN_MANUFACTURER_CODE RAIS               # A four-character manufacturer id with at least one upper-case character
-		PLUGIN_CODE RAIS                            # A unique four-character plugin id with exactly one upper-case character
+		PLUGIN_MANUFACTURER_CODE ZELO              # A four-character manufacturer id with at least one upper-case character
+		PLUGIN_CODE ONEZ                            # A unique four-character plugin id with exactly one upper-case character
 		# GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case
 
 		if(APPLE)
@@ -70,8 +70,6 @@ set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 
 # Add all source files to file list
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/source/*.h)
-# Include the main directory and its subdirectories
-include_directories(${CMAKE_SOURCE_DIR}/libs)
 
 # Add all sources to target
 target_sources(${TARGET_NAME} PRIVATE ${SOURCES})
@@ -88,12 +86,26 @@ endforeach ()
 # Make the folder structure visible in the IDE
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/source PREFIX "source" FILES ${SOURCES})
 
-# `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
-# project, these might be passed in the 'Preprocessor Definitions' field. JUCE modules also make use
-# of compile definitions to switch certain features on/off, so if there's a particular feature you
-# need that's not on by default, check the module header for the correct flag to set here. These
-# definitions will be visible both to your code, and also the JUCE module code, so for new
-# definitions, pick unique names that are unlikely to collide! This is a standard CMake command.
+
+# Add all source files to file list
+file(GLOB_RECURSE LIBS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libs/DAFX/**/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/libs/DAFX/**/*.h)
+
+# Add all sources to target
+target_sources(${TARGET_NAME} PRIVATE ${LIBS})
+
+# Add include directories for all folders in the source
+file(GLOB_RECURSE source_dirs LIST_DIRECTORIES true ${CMAKE_CURRENT_LIST_DIR}/libs/DAFX/**/*)
+
+foreach (dir ${source_dirs})
+    if (IS_DIRECTORY ${dir})
+        target_include_directories(${TARGET_NAME} PRIVATE ${dir})
+    endif ()
+endforeach ()
+
+# Make the folder structure visible in the IDE
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/libs/DAFX/ PREFIX "libs" FILES ${LIBS})
+
+
 
 target_compile_definitions(${TARGET_NAME}
 		PUBLIC
