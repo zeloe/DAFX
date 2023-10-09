@@ -10,15 +10,15 @@
 
 #pragma once
 #include "JuceHeader.h"
-class Hanning
+class UniSine
 {
 public:
-    Hanning()
+    UniSine()
     {
         // wird nur einmal in Constructor ausgeführt
         createWavetable();
     };
-    ~Hanning(){};
+    ~UniSine(){};
     
     void createWavetable()
     {
@@ -35,5 +35,5 @@ public:
     juce::AudioSampleBuffer waveTable;
 private:
     const unsigned int tableSize = 512;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Hanning);
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (UniSine);
 };
