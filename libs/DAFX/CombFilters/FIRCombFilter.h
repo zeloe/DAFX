@@ -12,23 +12,14 @@
 #include "../Utility/Interpolation.h"
 class FIRComb {
 public:
-    FIRComb()
-    {
-        FIRComb::delayLine.resize(512);
-    };
-    ~FIRComb(){};
+    FIRComb(){}
+    ~FIRComb(){}
     // A low Size is better like delayLineSize = 10
-    void prepare(int delayLineSize,int blocksize)
+    void prepare(int delayLineSize)
     {
-        delayLine.resize(delayLineSize + 1);
-       
-        std::vector<float>::iterator ptr;
-        for(ptr = delayLine.begin(); ptr < delayLine.end(); ptr++)
-        {
-            *ptr = 0;
-          
-        }
-        bs = blocksize;
+        
+        delayLine.setSize(1,delayLineSize + 1);
+        delayLine.clear();
         current_g  = 0;
         current_delay = 0;
         current_fract = 0;
@@ -45,9 +36,10 @@ public:
     }
     
     
-    void process(float* input)
+    void process(float* input, const int bs)//int  blocksize *audioBuffer
     {
-        // need to fix this some artifacts....
+
+        float* delayWtr = delayLine.getWritePointer(0);
         if(current_delay != delay)
         {
             
@@ -59,12 +51,16 @@ public:
                 current_delay += inc_delay;
                 current_fract += inc_fract;
                 readPointer = (writePointer - current_delay + size);
-                readPointer = (readPointer) % size;
-                delayLine[writePointer] = input[i];
-                const float y0 = delayLine[(readPointer) % size];
-                const float y1 = delayLine[(readPointer + 1) % size];
-                const float y2 = delayLine[(readPointer + 2) % size];
-                const float y3 = delayLine[(readPointer + 3) % size];
+                if(readPointer - 3 > size)
+                {
+                    readPointer = readPointer + size;
+                }
+                
+                delayWtr[writePointer] = input[i];
+                const float y0 = delayWtr[(readPointer - 3) % size];
+                const float y1 = delayWtr[(readPointer - 2) % size];
+                const float y2 = delayWtr[(readPointer - 1) % size];
+                const float y3 = delayWtr[(readPointer) % size];
                 //less artifacts with higher interpolation methods
                 const float x_est = splineInterpolation(y0, y1, y2, y3, current_fract);
                 writePointer++;
@@ -82,9 +78,9 @@ public:
             for(int i = 0; i < bs; i++)
             {
                 current_g += inc_g;
-                delayLine[writePointer] = input[i];
-                readPointer = (writePointer - int(delay) + size) % size;
-                const float y0 = delayLine[readPointer];
+                delayWtr[writePointer] = input[i];
+                readPointer = (writePointer - (delay) + size) % size;
+                const float y0 = delayWtr[readPointer];
                 input[i] = input[i] + y0 * current_g;
                 writePointer = (writePointer + 1) % size;
                 
@@ -93,9 +89,9 @@ public:
         } else {
                 for(int i = 0; i < bs; i++)
                 {
-                    delayLine[writePointer] = input[i];
-                    readPointer = (writePointer - int(delay) + size) % size;
-                    const float y0 = delayLine[readPointer];
+                    delayWtr[writePointer] = input[i];
+                    readPointer = (writePointer - (delay) + size) % size;
+                    const float y0 = delayWtr[readPointer];
                     input[i]  = input[i] + y0 * gain;
                     writePointer = (writePointer + 1) % size;
 
@@ -108,19 +104,18 @@ public:
     
     
 private:
-    size_t bs = 0;
     float current_g = 0;
     float  inc_g = 0;
     float gain = 0;
     float current_fract = 0;
     float current_delay = 0;
     float fract = 0;
-    float delay = 0;
+    unsigned int delay = 0;
     float inc_fract = 0;
     float inc_delay = 0;
     unsigned int readPointer = 0;
     unsigned int writePointer = 0;
-    int size = 0;
-    std::vector<float> delayLine;
+    unsigned int size = 0;
+    juce::AudioBuffer<float> delayLine;
 };
 
