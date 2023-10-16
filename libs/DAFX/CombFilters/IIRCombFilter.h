@@ -12,22 +12,14 @@
 #include "../Utility/Interpolation.h"
 class IIRComb {
 public:
-    IIRComb()
-    {
-        IIRComb::delayLine.resize(512);
-    };
-    ~IIRComb(){};
+    IIRComb(){}
+    ~IIRComb(){}
     // A low Size is better like delayLineSize = 10
-    void prepare(int delayLineSize,int blocksize)
+    void prepare(unsigned int delayLineSize)
     {
-        delayLine.resize(delayLineSize + 1);
+        delayLine.setSize(1, delayLineSize + 1);
         
-        std::vector<float>::iterator ptr;
-        for(ptr = delayLine.begin(); ptr < delayLine.end(); ptr++)
-        {
-            *ptr = 0;
-        }
-        bs = blocksize;
+        delayLine.clear();
         current_g  = 0;
         current_delay = 0;
         current_fract = 0;
@@ -45,8 +37,9 @@ public:
     }
     
     
-    void process(float* input)
+    void process(float* input, const int bs)
     {
+        float* delayWtr = delayLine.getWritePointer(0);
         if(current_delay != delay)
         {
             
@@ -59,11 +52,15 @@ public:
                 current_fract += inc_fract;
                 readPointer = (writePointer - current_delay + size);
                 readPointer = (readPointer) % size;
-                delayLine[writePointer] = output;
-                const float y0 = delayLine[(readPointer) % size];
-                const float y1 = delayLine[(readPointer + 1) % size];
-                const float y2 = delayLine[(readPointer + 2) % size];
-                const float y3 = delayLine[(readPointer + 3) % size];
+                if(readPointer - 3 < 0 )
+                {
+                    readPointer = readPointer + size;
+                }
+                delayWtr[writePointer] = output;
+                const float y0 = delayWtr[(readPointer - 3) % size];
+                const float y1 = delayWtr[(readPointer - 2) % size];
+                const float y2 = delayWtr[(readPointer - 1) % size];
+                const float y3 = delayWtr[(readPointer) % size];
                 //less artifacts with higher interpolation methods
                 const float x_est = splineInterpolation(y0, y1, y2, y3, current_fract);
                 writePointer++;
@@ -82,9 +79,9 @@ public:
             for(int i = 0; i < bs; i++)
             {
                 current_g += inc_g;
-                delayLine[writePointer] = output;
+                delayWtr[writePointer] = output;
                 readPointer = (writePointer - int(delay) + size) % size;
-                const float y0 = delayLine[readPointer];
+                const float y0 = delayWtr[readPointer];
                 output = input[i] + y0 * current_g;
                 input[i] = output;
                 writePointer = (writePointer + 1) % size;
@@ -94,9 +91,9 @@ public:
         } else {
                 for(int i = 0; i < bs; i++)
                 {
-                    delayLine[writePointer] = output;
+                    delayWtr[writePointer] = output;
                     readPointer = (writePointer - int(delay) + size) % size;
-                    const float y0 = delayLine[readPointer];
+                    const float y0 = delayWtr[readPointer];
                     output = input[i] + y0 * gain;
                     input[i] = output;
                     writePointer = (writePointer + 1) % size;
@@ -110,20 +107,19 @@ public:
     
     
 private:
-    size_t bs = 0;
     float current_g = 0;
     float  inc_g = 0;
     float gain = 0;
     float current_fract = 0;
     float current_delay = 0;
     float fract = 0;
-    float delay = 0;
+    unsigned int delay = 0;
     float inc_fract = 0;
     float inc_delay = 0;
     unsigned int readPointer = 0;
     unsigned int writePointer = 0;
-    int size = 0;
+    unsigned int size = 0;
+    juce::AudioBuffer<float> delayLine;
     float output = 0;
-    std::vector<float> delayLine;
 };
 

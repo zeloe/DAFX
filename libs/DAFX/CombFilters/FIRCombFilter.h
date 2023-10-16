@@ -51,7 +51,7 @@ public:
                 current_delay += inc_delay;
                 current_fract += inc_fract;
                 readPointer = (writePointer - current_delay + size);
-                if(readPointer - 3 > size)
+                if(readPointer - 3 < 0)
                 {
                     readPointer = readPointer + size;
                 }
