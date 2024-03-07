@@ -19,13 +19,32 @@ PluginAudioProcessor::PluginAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), treeState(*this, nullptr, "Params", createParameterLayout())
 #endif
 {
+    dl = std::make_unique<DelayLine>();
+    delay = treeState.getRawParameterValue("Delay");
+    gain = treeState.getRawParameterValue("Gain");
+    
+    
 }
 
 PluginAudioProcessor::~PluginAudioProcessor()
 {
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout PluginAudioProcessor::createParameterLayout()
+{
+    std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
+    
+    auto Delay = std::make_unique<juce::AudioParameterFloat>("Delay","Delay",0.01f,44100.f,50.f);
+    auto Gain = std::make_unique<juce::AudioParameterFloat>("Gain","Gain",0.01f,1.0f,0.4f);
+    
+    params.push_back(std::move(Delay));
+    params.push_back(std::move(Gain));
+    
+    return {params.begin(), params.end()};
+    
 }
 
 //==============================================================================
@@ -93,8 +112,7 @@ void PluginAudioProcessor::changeProgramName (int index, const juce::String& new
 //==============================================================================
 void PluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    dl->prepare(sampleRate,samplesPerBlock);
 }
 
 void PluginAudioProcessor::releaseResources()
@@ -141,22 +159,20 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    const float* left = buffer.getReadPointer(0);
+    const float* right = buffer.getReadPointer(1);
+    float* temp = buffer.getWritePointer(0);
+    for(int i = 0; i < buffer.getNumSamples(); i++)
     {
-        auto* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
+        temp[i] = (left[i] + right[i]) * 0.5f;
     }
+    
+    dl->setParams(*delay);
+    
+    dl->process(buffer,buffer.getNumSamples());
+    
 }
+
 
 //==============================================================================
 bool PluginAudioProcessor::hasEditor() const
@@ -166,7 +182,7 @@ bool PluginAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* PluginAudioProcessor::createEditor()
 {
-    return new PluginAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor (*this);//new PluginAudioProcessorEditor (*this);
 }
 
 //==============================================================================

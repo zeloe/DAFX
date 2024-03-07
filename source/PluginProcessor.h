@@ -9,8 +9,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../libs/DAFX/CombFilters/FIRCombFilter.h"
-//==============================================================================
+#include "../libs/DAFX/DelayLine/DelayLine.h"
+//=============================================================================
 /**
 */
 class PluginAudioProcessor  : public juce::AudioProcessor
@@ -55,8 +55,12 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-
+    juce::AudioProcessorValueTreeState treeState;
 private:
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    std::unique_ptr<DelayLine> dl;
+    std::atomic<float>* delay = nullptr;
+    std::atomic<float>* gain = nullptr;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginAudioProcessor)
 };

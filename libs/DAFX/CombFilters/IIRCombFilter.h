@@ -54,7 +54,7 @@ public:
                 readPointer = (readPointer) % size;
                 if(readPointer - 3 < 0 )
                 {
-                    readPointer = readPointer + size;
+                    readPointer  = readPointer + size;
                 }
                 delayWtr[writePointer] = output;
                 const float y0 = delayWtr[(readPointer - 3) % size];
