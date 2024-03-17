@@ -9,7 +9,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../libs/DAFX/DelayLine/DelayLine.h"
+#include "../libs/DAFX/CombFilters/UniversalCombFilter.h"
 //=============================================================================
 /**
 */
@@ -58,7 +58,7 @@ public:
     juce::AudioProcessorValueTreeState treeState;
 private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    std::unique_ptr<DelayLine> dl;
+    std::unique_ptr<UniversalComb> uniComb;
     std::atomic<float>* delay = nullptr;
     std::atomic<float>* gain = nullptr;
     //==============================================================================
