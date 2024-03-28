@@ -22,16 +22,16 @@ public:
     }
     ~DelayLine(){}
     
-    void prepare(int delayLineSize, int& maxBlocksize, int channels)
+    void prepare(int delayLineSize, int& maxBlockSize, int channels)
     {
         this->channels = channels;
         delBuffer.setSize(this->channels,delayLineSize);
         delBuffer.clear();
         size = delayLineSize;
-        current_bs = maxBlocksize;
         t_output[0] = 0;
         t_output[1] = 0;
-        
+        smoother_DelayTime->prepare(maxBlockSize);
+        smoother_Fraction->prepare(maxBlockSize);
     }
     
     void setParams(float del)
@@ -39,11 +39,7 @@ public:
         float temp = floor(del);
         fract = del - temp;
         delay = temp;
-        smoother_DelayTime->calcCoeff(delay,current_delay,current_bs);
-        current_delay = delay;
-        //smoother_Fraction->calcCoeff(fract,current_fract,current_bs);
-        current_fract = fract;
-        k = 1;
+        smoother_DelayTime->calcCoeff(delay,current_delay);
     }
     
     void incrementDelayLine()
@@ -67,7 +63,7 @@ public:
     void resetSmoother()
     {
         smoother_DelayTime->resetSmoother();
-        smoother_Fraction->resetSmoother();
+        //smoother_Fraction->resetSmoother();
     }
     
     void process(juce::AudioBuffer<float>& buffer, int bs)
@@ -82,7 +78,7 @@ public:
             for(int i = 0; i < bs; i++)
             {
                  
-                readPointer = (writePointer - smoother_DelayTime->smoothing(current_delay));
+                readPointer = (writePointer - smoother_DelayTime->smoothing());
                 delWrite[writePointer] = input[i];
                 if (readPointer - 3 < 0)
                 {
@@ -93,7 +89,7 @@ public:
                 const float y2 = delRead[(readPointer - 1) % size];
                 const float y3 = delRead[(readPointer) % size];
                 
-                const float t_output = cubicInterpolation(y0, y1, y2, y3,smoother_Fraction->smoothing(current_fract));
+                const float t_output = cubicInterpolation(y0, y1, y2, y3, fract);
                 output[i] = t_output;
                 this->incrementDelayLine();
                
@@ -127,7 +123,7 @@ public:
         if (smoother_DelayTime->isSmoothing == true)
         {
             
-            readPointer = (writePointer - smoother_DelayTime->smoothing(current_delay));
+            readPointer = (writePointer - smoother_DelayTime->smoothing());
             delWrite[writePointer] = input;
             if (readPointer - 3 < 0)
             {
@@ -138,12 +134,13 @@ public:
             const float y2 = delRead[(readPointer - 1) % size];
             const float y3 = delRead[(readPointer) % size];
                 
-            const float t_output = cubicInterpolation(y0, y1, y2, y3, smoother_Fraction->smoothing(current_fract));
+            const float t_output = cubicInterpolation(y0, y1, y2, y3, smoother_Fraction->smoothing());
                 
             this->incrementDelayLine();
             return t_output;
                
         }
+      
         else
         {
             delWrite[writePointer] = input;
@@ -155,17 +152,16 @@ public:
     }
     
     
-    float processBlockInter(float input, int bs)
+    float processBlockInter(float input)
     {
         
         const float* delRead = delBuffer.getReadPointer(0);
         float* delWrite = delBuffer.getWritePointer(0);
-        current_bs = bs;
         int j = 0;
         if (smoother_DelayTime->isSmoothing == true)
         {
             
-            readPointer = (writePointer - smoother_DelayTime->smoothing(current_delay));
+            readPointer = (writePointer - smoother_DelayTime->smoothing());
             delWrite[writePointer] = input;
             if (readPointer - 6 < 0)
             {
@@ -176,17 +172,17 @@ public:
             const float y2 = delRead[(readPointer - 2) % size];
             const float y3 = delRead[(readPointer) % size];
                 
-            const float output = cubicInterpolation(y0, y1, y2, y3, current_fract);
+            const float output = cubicInterpolation(y0, y1, y2, y3, fract);
                 
             this->incrementDelayLineInter();
             return output;
                
         }
+        
         else
         {
             delWrite[writePointer] = input;
             readPointer = (writePointer - int(current_delay) + size) % size;
-            //readPointer = readPointer + channels;
             const float y0 = delRead[readPointer];
             this->incrementDelayLineInter();
             return y0;
@@ -211,14 +207,14 @@ public:
         if (smoother_DelayTime->isSmoothing == true)
         {
             
-            readPointer = (writePointer - smoother_DelayTime->smoothing(current_delay));
+            readPointer = (writePointer - smoother_DelayTime->smoothing());
             delWriteL[writePointer] = *leftIn++;
             delWriteR[writePointer] = *rightIn++;
             if (readPointer - 3 < 0)
             {
                 readPointer += size;
             }
-            const float fract = smoother_Fraction->smoothing(current_fract);
+            const float fract = smoother_Fraction->smoothing();
             const float y0L = delReadL[(readPointer - 3 + size) % size];
             const float y1L = delReadL[(readPointer - 2 + size) % size];
             const float y2L = delReadL[(readPointer - 1 + size) % size];
