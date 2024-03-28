@@ -28,21 +28,24 @@ public:
         fbdelayLine->prepare(delayLineSize,maxBlockSize, channels);
         fbBuffer.setSize(2,maxBlockSize);
         fbBuffer.clear();
-        
+        smoother->prepare(maxBlockSize);
         this->sampleRate = cur_sampleRate;
         tempFBL = 0;
         tempFBR = 0;
     }
-    void setFrequency(float hz, float lingain)
+    void setFrequency(float hz)
     {
         const float period  = 1.f / hz;
         float delayTimeSamples = period * sampleRate;
         ffdelayLine->setParams(delayTimeSamples);
         fbdelayLine->setParams(delayTimeSamples);
-        a =  lingain;
-        current_a = lingain;
+         
     }
-    
+    void setLinGain(float g)
+    {
+        a = g;
+        smoother->calcCoeff(a, current_a);
+    }
    
     
     void process(juce::AudioBuffer<float>& buffer,  int bs)
@@ -62,24 +65,52 @@ public:
 
         if(smoother->isSmoothing == true)
         {
+            for (int i = 0; i < current_bs; i++)
+            {
+                inputL = leftIn[i];
+                inputR = rightIn[i];
+                tempFFL = ffdelayLine->processBlockInter(inputL * current_a);
+                tempFFR = ffdelayLine->processBlockInter(inputR * current_a);
+                tempFBL = (inputL)+tempFFL + fbdelayLine->processBlockInter(tempFBL * current_a);
+                tempFBR = (inputR)+tempFFR + fbdelayLine->processBlockInter(tempFBR * current_a);
+                leftOut[i] = scale * (tempFBL);
+                rightOut[i] = scale * (tempFBR);
+                current_a = smoother->smoothing();
+            }
             current_a = a;
+            
+            smoother->resetSmoother();
+        }
+        else if (ffdelayLine->smoother_DelayTime->isSmoothing == true)
+        {
+
+            for (int i = 0; i < current_bs; i++)
+            {
+                inputL = leftIn[i];
+                inputR = rightIn[i];
+                tempFFL = ffdelayLine->processBlockInter(inputL * current_a);
+                tempFFR = ffdelayLine->processBlockInter(inputR * current_a);
+                tempFBL = (inputL)+tempFFL + fbdelayLine->processBlockInter(tempFBL * current_a);;
+                tempFBR = (inputR)+tempFFR + fbdelayLine->processBlockInter(tempFBR * current_a);
+                leftOut[i] = scale * (tempFBL);
+                rightOut[i] = scale * (tempFBR);
+
+            }
             ffdelayLine->resetSmoother();
             fbdelayLine->resetSmoother();
-            smoother->resetSmoother();
-            
         }
-        else
+        else if(smoother->isSmoothing == false && ffdelayLine->smoother_DelayTime->isSmoothing == false)
         {
             for(int i = 0; i < current_bs; i++)
             {
                 inputL = leftIn[i];
                 inputR = rightIn[i];
-                tempFFL = ffdelayLine->processBlockInter(inputL   * current_a, current_bs);
-                tempFFR =  ffdelayLine->processBlockInter(inputR  * current_a, current_bs);
-                tempFBL =  (inputL) +   tempFFL   +    fbdelayLine->processBlockInter(tempFBL * current_a,current_bs);;
-                tempFBR =  (inputR) +   tempFFR   +   fbdelayLine->processBlockInter(tempFBR * current_a,current_bs);
-                leftOut[i]   = 0.15f* (tempFBL);
-                rightOut[i]  = 0.15f* (tempFBR);
+                tempFFL = ffdelayLine->processBlockInter(inputL   * current_a);
+                tempFFR =  ffdelayLine->processBlockInter(inputR  * current_a);
+                tempFBL =  (inputL) +   tempFFL   +    fbdelayLine->processBlockInter(tempFBL * current_a);;
+                tempFBR =  (inputR) +   tempFFR   +   fbdelayLine->processBlockInter(tempFBR * current_a);
+                leftOut[i]   = scale * (tempFBL);
+                rightOut[i]  = scale * (tempFBR);
                 
                 
             }
@@ -98,5 +129,6 @@ private:
     int current_bs = 0;
     float tempFBL = 0;
     float tempFBR = 0;
+    const float scale = 0.1;
 };
 
