@@ -44,7 +44,8 @@ public:
     void setLinGain(float g)
     {
         a = g;
-        smoother->calcCoeff(a, current_a);
+        //smoother->calcCoeff(a, current_a);
+        smoother->calcCoeffThreaded(a, current_a);
     }
    
     
@@ -63,25 +64,7 @@ public:
          float tempFFL;
          float tempFFR;
 
-        if(smoother->isSmoothing == true)
-        {
-            for (int i = 0; i < current_bs; i++)
-            {
-                inputL = leftIn[i];
-                inputR = rightIn[i];
-                tempFFL = ffdelayLine->processBlockInter(inputL * current_a);
-                tempFFR = ffdelayLine->processBlockInter(inputR * current_a);
-                tempFBL = (inputL)+tempFFL + fbdelayLine->processBlockInter(tempFBL * current_a);
-                tempFBR = (inputR)+tempFFR + fbdelayLine->processBlockInter(tempFBR * current_a);
-                leftOut[i] = scale * (tempFBL);
-                rightOut[i] = scale * (tempFBR);
-                current_a = smoother->smoothing();
-            }
-            current_a = a;
-            
-            smoother->resetSmoother();
-        }
-        else if (ffdelayLine->smoother_DelayTime->isSmoothing == true)
+        if (ffdelayLine->smoother_DelayTime->isSmoothing == true)
         {
 
             for (int i = 0; i < current_bs; i++)
@@ -99,7 +82,7 @@ public:
             ffdelayLine->resetSmoother();
             fbdelayLine->resetSmoother();
         }
-        else if(smoother->isSmoothing == false && ffdelayLine->smoother_DelayTime->isSmoothing == false)
+        else
         {
             for(int i = 0; i < current_bs; i++)
             {
