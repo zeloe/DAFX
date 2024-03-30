@@ -23,10 +23,10 @@ PluginAudioProcessor::PluginAudioProcessor()
 #endif
 {
     uniComb = std::make_unique<UniversalComb>();
- 
+    freq = treeState.getRawParameterValue(PluginParameter::FREQUENCY);
+    gain = treeState.getRawParameterValue(PluginParameter::GAIN);
     for (auto param : PluginParameter::getPluginParameterList())
     {
-        DBG(param);
             treeState.addParameterListener(param, this);
     }
     
@@ -51,6 +51,13 @@ void PluginAudioProcessor::parameterChanged(const juce::String& parameterID, flo
         {
             uniComb->setLinGain(newValue);
         }
+
+}
+
+void PluginAudioProcessor::initParams()
+{
+    uniComb->setFrequency(*freq);
+    uniComb->setLinGain(*gain);
 
 }
  
@@ -120,6 +127,7 @@ void PluginAudioProcessor::changeProgramName (int index, const juce::String& new
 void PluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     uniComb->prepare(sampleRate,samplesPerBlock,sampleRate, 2);
+    this->initParams();
 }
 
 void PluginAudioProcessor::releaseResources()
@@ -179,15 +187,17 @@ juce::AudioProcessorEditor* PluginAudioProcessor::createEditor()
 //==============================================================================
 void PluginAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    juce::MemoryOutputStream mos(destData, true);
+    treeState.state.writeToStream(mos);
 }
 
 void PluginAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
+    if (tree.isValid())
+    {
+        treeState.replaceState(tree);
+    }
 }
 
 //==============================================================================

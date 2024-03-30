@@ -53,16 +53,16 @@ public:
     void setCurrentProgram (int index) override;
     const juce::String getProgramName (int index) override;
     void changeProgramName (int index, const juce::String& newName) override;
-
+    
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
     juce::AudioProcessorValueTreeState treeState;
 private:
     void parameterChanged(const juce::String& parameterID, float newValue) override;
-    
+    void initParams();
     std::unique_ptr<UniversalComb> uniComb;
-    std::atomic<float>* delay = nullptr;
+    std::atomic<float>* freq = nullptr;
     std::atomic<float>* gain = nullptr;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginAudioProcessor)
