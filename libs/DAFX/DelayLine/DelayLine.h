@@ -39,7 +39,9 @@ public:
         float temp = floor(del);
         fract = del - temp;
         delay = temp;
-        smoother_DelayTime->calcCoeff(delay,current_delay);
+        //smoother_DelayTime->calcCoeff(delay,current_delay);
+        smoother_DelayTime->calcCoeffThreaded(delay, current_delay);
+        smoother_Fraction->calcCoeffThreaded(fract, current_fract);
     }
     
     void incrementDelayLine()
@@ -161,18 +163,18 @@ public:
         if (smoother_DelayTime->isSmoothing == true)
         {
             
-            readPointer = (writePointer - smoother_DelayTime->smoothing());
+            readPointer = (writePointer - current_delay);
             delWrite[writePointer] = input;
-            if (readPointer - 6 < 0)
+            if (readPointer - 7 < 0)
             {
                 readPointer += size;
             }
-            const float y0 = delRead[(readPointer - 6) % size];
-            const float y1 = delRead[(readPointer - 4) % size];
-            const float y2 = delRead[(readPointer - 2) % size];
-            const float y3 = delRead[(readPointer) % size];
+            const float y0 = delRead[(readPointer - 7) % size];
+            const float y1 = delRead[(readPointer - 5) % size];
+            const float y2 = delRead[(readPointer - 3) % size];
+            const float y3 = delRead[(readPointer - 1) % size];
                 
-            const float output = cubicInterpolation(y0, y1, y2, y3, fract);
+            const float output = cubicInterpolation(y0, y1, y2, y3, current_fract);
                 
             this->incrementDelayLineInter();
             return output;
