@@ -40,14 +40,13 @@ public:
         fract = del - temp;
         delay = temp;
         //smoother_DelayTime->calcCoeff(delay,current_delay);
-        smoother_DelayTime->calcCoeffThreaded(delay, current_delay);
-        smoother_Fraction->calcCoeffThreaded(fract, current_fract);
+        smoother_DelayTime->smooth(delay, current_delay);
+        smoother_Fraction->smooth(fract, current_fract);
     }
     
     void incrementDelayLine()
     {
         writePointer = (writePointer + 1) % size;
-        readPointer = (readPointer + 1) % size;
     }
     
     void incrementDelayLineInter()
@@ -65,7 +64,7 @@ public:
     void resetSmoother()
     {
         smoother_DelayTime->resetSmoother();
-        //smoother_Fraction->resetSmoother();
+        smoother_Fraction->resetSmoother();
     }
     
     void process(juce::AudioBuffer<float>& buffer, int bs)
@@ -159,33 +158,29 @@ public:
         
         const float* delRead = delBuffer.getReadPointer(0);
         float* delWrite = delBuffer.getWritePointer(0);
-        int j = 0;
-        if (smoother_DelayTime->isSmoothing == true)
+
+        readPointer = (writePointer - current_delay);
+        delWrite[writePointer] = input;
+
+        if (smoother_DelayTime->isSmoothing)
         {
-            
-            readPointer = (writePointer - current_delay);
-            delWrite[writePointer] = input;
             if (readPointer - 7 < 0)
             {
                 readPointer += size;
             }
+
             const float y0 = delRead[(readPointer - 7) % size];
             const float y1 = delRead[(readPointer - 5) % size];
             const float y2 = delRead[(readPointer - 3) % size];
             const float y3 = delRead[(readPointer - 1) % size];
-                
+
             const float output = cubicInterpolation(y0, y1, y2, y3, current_fract);
-                
             this->incrementDelayLineInter();
             return output;
-               
         }
-        
         else
         {
-            delWrite[writePointer] = input;
-            readPointer = (writePointer - int(current_delay) + size) % size;
-            const float y0 = delRead[readPointer];
+            const float y0 = delRead[(writePointer - int(current_delay) + size) % size];
             this->incrementDelayLineInter();
             return y0;
         }
