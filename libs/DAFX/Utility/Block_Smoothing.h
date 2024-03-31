@@ -47,11 +47,14 @@ public:
         return *this->currentParam += inc;
     }
     
-    void smoothThread()
+    void smooth(float& newParam, float& currentParam)
     {
-        for(int i = 0; i < maxBs; i++){ 
-         *this->currentParam += inc;
-        }
+       
+        inc = (newParam - currentParam) / maxBs;
+        isSmoothing = true;
+        this->currentParam = &currentParam;
+        this->newParam = &newParam;
+        *this->currentParam += inc * maxBs;
         *this->currentParam = *this->newParam;
     }
 
@@ -64,8 +67,7 @@ public:
 
     void run() override
     {
-            this->smoothThread();
-
+            //this->smooth();
     }
 
     
