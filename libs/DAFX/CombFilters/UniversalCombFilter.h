@@ -44,7 +44,6 @@ public:
     void setLinGain(float g)
     {
         a = g;
-        //smoother->calcCoeff(a, current_a);
         smoother->smooth(a, current_a);
     }
    
@@ -90,7 +89,7 @@ public:
                 inputR = rightIn[i];
                 tempFFL = ffdelayLine->processBlockInter(inputL   * current_a);
                 tempFFR =  ffdelayLine->processBlockInter(inputR  * current_a);
-                tempFBL =  (inputL) +   tempFFL   +    fbdelayLine->processBlockInter(tempFBL * current_a);;
+                tempFBL =  (inputL) +   tempFFL   +    fbdelayLine->processBlockInter(tempFBL * current_a);
                 tempFBR =  (inputR) +   tempFFR   +   fbdelayLine->processBlockInter(tempFBR * current_a);
                 leftOut[i]   = scale * (tempFBL);
                 rightOut[i]  = scale * (tempFBR);
