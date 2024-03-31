@@ -45,7 +45,7 @@ public:
     {
         a = g;
         //smoother->calcCoeff(a, current_a);
-        smoother->calcCoeffThreaded(a, current_a);
+        smoother->smooth(a, current_a);
     }
    
     
