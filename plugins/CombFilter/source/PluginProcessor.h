@@ -61,7 +61,7 @@ public:
 private:
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     void initParams();
-    std::unique_ptr<UniversalComb> uniComb;
+    std::unique_ptr<SIMDUniversalComb> uniComb;
     std::atomic<float>* freq = nullptr;
     std::atomic<float>* gain = nullptr;
     //==============================================================================

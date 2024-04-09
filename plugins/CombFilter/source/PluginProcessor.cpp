@@ -22,7 +22,7 @@ PluginAudioProcessor::PluginAudioProcessor()
                        ), treeState(*this, nullptr, juce::Identifier("Parameters"), PluginParameter::createParameterLayout())
 #endif
 {
-    uniComb = std::make_unique<UniversalComb>();
+    uniComb = std::make_unique<SIMDUniversalComb>();
     freq = treeState.getRawParameterValue(PluginParameter::FREQUENCY);
     gain = treeState.getRawParameterValue(PluginParameter::GAIN);
     for (auto param : PluginParameter::getPluginParameterList())
@@ -126,8 +126,10 @@ void PluginAudioProcessor::changeProgramName (int index, const juce::String& new
 //==============================================================================
 void PluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    uniComb->prepare(sampleRate,samplesPerBlock,sampleRate, 2);
-    this->initParams();
+    uniComb->prepare(samplesPerBlock * 50,samplesPerBlock,sampleRate, 2);
+    //this->initParams();
+    uniComb->setFrequency(20);
+    uniComb->setLinGain(-.90);
 }
 
 void PluginAudioProcessor::releaseResources()

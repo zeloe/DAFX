@@ -9,9 +9,11 @@
 */
 
 #pragma once
+
 #include "JuceHeader.h"
 #include "../Utility/Interpolation.h"
 #include "../Utility/Block_Smoothing.h"
+#include "immintrin.h"
 class DelayLine
 {
 public:
@@ -266,3 +268,87 @@ private:
     int channels = 0;
     int size = 0;
 };
+
+class SIMDDelayLine
+{
+public:
+    SIMDDelayLine() {};
+    ~SIMDDelayLine() {};
+
+
+    void prepare(int delayLineSize, int& maxBlockSize, int channels)
+    {
+        delBuffer.setSize(channels, delayLineSize);
+        delBuffer.clear();
+        this->delayLineSize = delayLineSize;
+        // Initialize read and write indices to zero
+        readPos = 0;
+        writePos = 0;
+    }
+    void setParams(float del)
+    {
+        int temp = static_cast<int>(floor(del)); // Convert float to int
+        current_delay = temp; // Initialize current_delay with the integer value
+    }
+        __m128 read()
+        {
+            // Get read and write pointers from the delay buffer
+            const float* delRead = delBuffer.getReadPointer(0);
+
+            // Calculate read position using modulo arithmetic
+            int readPointer = (writePos - current_delay + delayLineSize) % delayLineSize;
+
+            // Gather delayed samples from the delay buffer
+            __m128 y0 = _mm_set_ps(delRead[readPointer + 3], delRead[readPointer + 2], delRead[readPointer + 1], delRead[readPointer]);
+
+           
+
+            return y0;
+        }
+
+
+
+    void incrementDelaySIMD() {
+        // Increment write index by 4 (assuming processSample processes 4 samples at once)
+        writePos = (writePos + 4) % delayLineSize; // Wrap around if index exceeds buffer size
+    }
+
+    void write(__m128 samples)
+    {
+        float* delWrite = delBuffer.getWritePointer(0);
+        // Extract individual elements from the __m128 variable using intrinsic functions
+        float sampleArray[4];
+        _mm_storeu_ps(sampleArray, samples);
+        // Loop over the four samples
+        for (int i = 0; i < 4; ++i) {
+            // Calculate the index where the sample should be written, wrapping around if necessary
+            int index = (writePos + i) % delayLineSize;
+            // Write the sample to the delay buffer
+            delWrite[index] = sampleArray[i];
+        }
+         // Increment the delay line
+            this->incrementDelaySIMD();
+    }
+
+
+    __m128 SIMDcubicInterpolation(__m128 y0, __m128 y1, __m128 y2, __m128 y3, __m128 x) {
+        const __m128 a0 = _mm_sub_ps(_mm_sub_ps(_mm_add_ps(y3, y1), y2), y0);
+        const __m128 a1 = _mm_sub_ps(_mm_sub_ps(y0, y1), a0);
+        const __m128 a2 = _mm_sub_ps(y2, y0);
+        const __m128 a3 = y1;
+        return _mm_add_ps(_mm_add_ps(_mm_mul_ps(_mm_mul_ps(_mm_mul_ps(a0, x), x), x), _mm_mul_ps(_mm_mul_ps(a1, x), x)), _mm_add_ps(_mm_mul_ps(a2, x), a3));
+    }
+
+private:
+    juce::AudioBuffer<float> delBuffer;
+    __m128 fract;
+    __m128 delay;
+    __m128 current_fract;
+    int current_delay;
+    unsigned int readPos;
+    unsigned int writePos;
+    unsigned int delayLineSize;
+};
+
+
+
