@@ -22,7 +22,8 @@ PluginAudioProcessor::PluginAudioProcessor()
                        ), treeState(*this, nullptr, juce::Identifier("Parameters"), PluginParameter::createParameterLayout())
 #endif
 {
-    uniComb = std::make_unique<SIMDUniversalComb>();
+  
+    simdComb = std::make_unique<SIMDCOMB>() ;
     freq = treeState.getRawParameterValue(PluginParameter::FREQUENCY);
     gain = treeState.getRawParameterValue(PluginParameter::GAIN);
     for (auto param : PluginParameter::getPluginParameterList())
@@ -44,20 +45,20 @@ void PluginAudioProcessor::parameterChanged(const juce::String& parameterID, flo
 {
         if (parameterID == PluginParameter::FREQUENCY)
         {
-            uniComb->setFrequency(newValue);
+            simdComb->uniComb->setFrequency(newValue);
           
         }
         if (parameterID == PluginParameter::GAIN)
         {
-            uniComb->setLinGain(newValue);
+            simdComb->uniComb->setLinGain(newValue);
         }
 
 }
 
 void PluginAudioProcessor::initParams()
 {
-    uniComb->setFrequency(*freq);
-    uniComb->setLinGain(*gain);
+    simdComb->uniComb->setFrequency(*freq);
+    simdComb->uniComb->setLinGain(*gain);
 
 }
  
@@ -126,10 +127,13 @@ void PluginAudioProcessor::changeProgramName (int index, const juce::String& new
 //==============================================================================
 void PluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    uniComb->prepare(samplesPerBlock * 50,samplesPerBlock,sampleRate, 2);
-    //this->initParams();
-    uniComb->setFrequency(20);
-    uniComb->setLinGain(-.90);
+     juce::dsp::ProcessSpec specs;
+
+    specs.sampleRate = sampleRate;
+    specs.maximumBlockSize = samplesPerBlock;
+    specs.numChannels = 2;
+    simdComb->prepare(specs);
+    this->initParams();
 }
 
 void PluginAudioProcessor::releaseResources()
@@ -167,11 +171,21 @@ bool PluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) c
 void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
+    auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    
-    uniComb->process(buffer , buffer.getNumSamples());
+    // Use the actual number of channels from the buffer
+    size_t numChannels = buffer.getNumChannels();
+
+    // Prepare the process context with the input and output buffers
+    juce::dsp::AudioBlock<float> audioBlock(buffer.getArrayOfWritePointers(), numChannels, buffer.getNumSamples());
+    juce::dsp::ProcessContextReplacing<float> context(audioBlock);
+
+    // Ensure thread safety when accessing the SIMD comb filter
+    juce::ScopedLock audioLock(audioCallbackLock);
+
+    // Process the audio using the SIMD comb filter
+    simdComb->process(context);
 }
 
 

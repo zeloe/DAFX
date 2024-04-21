@@ -4,27 +4,28 @@
 
 #include "JuceHeader.h"
 
-
-class block_Smoothing : public juce::Thread
+#include "JuceHeader.h"
+ 
+class BlockSmoothing 
 {
 public:
-    block_Smoothing() : Thread("UpdateParam") {}
-    ~block_Smoothing() 
+    BlockSmoothing() {}
+    ~BlockSmoothing()
     {
-        waitForThreadToExit(1000);
-        stopThread(1000);
+      
     }
-    
-    void calcCoeff(float& newParam,float& currentParam,int bs)
+
+    void calcCoeff(float& newParam, float& currentParam, int bs)
     {
         inc = (newParam - currentParam) / bs;
         isSmoothing = true;
     }
+
     void prepare(int maxBlockSize)
     {
         maxBs = maxBlockSize;
     }
-    
+
     void calcCoeff(float& newParam, float& currentParam)
     {
         inc = (newParam - currentParam) / maxBs;
@@ -32,24 +33,15 @@ public:
         this->currentParam = &currentParam;
         this->newParam = &newParam;
     }
+     
 
-    void calcCoeffThreaded(float& newParam, float& currentParam)
-    {
-        inc = (newParam - currentParam) / maxBs;
-        isSmoothing = true;
-        this->currentParam = &currentParam;
-        this->newParam = &newParam;
-        startThread(Priority::normal);
-    }
-    
-    float smoothing ()
+    float smoothing()
     {
         return *this->currentParam += inc;
     }
-    
+
     void smooth(float& newParam, float& currentParam)
     {
-       
         inc = (newParam - currentParam) / maxBs;
         isSmoothing = true;
         this->currentParam = &currentParam;
@@ -58,24 +50,18 @@ public:
         *this->currentParam = *this->newParam;
     }
 
-
     void resetSmoother()
     {
         isSmoothing = false;
         *this->currentParam = *this->newParam;
     }
+     
 
-    void run() override
-    {
-            //this->smooth();
-    }
-
-    
     bool isSmoothing = false;
-    
+
 private:
     float inc = 0;
-    float maxBs = 0;
+    size_t maxBs = 0;
     float* currentParam = nullptr;
     float* newParam = nullptr;
 };
