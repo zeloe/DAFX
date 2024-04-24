@@ -20,8 +20,8 @@ class DelayLine
 public:
     DelayLine()
     {
-        smoother_DelayTime = std::make_unique<BlockSmoothing>();
-        smoother_Fraction = std::make_unique<BlockSmoothing>();
+        smoother_DelayTime = std::make_unique<BlockSmoothing<float>>();
+        smoother_Fraction = std::make_unique<BlockSmoothing<float>>();
         cubicInter = std::make_unique<Interpolation<FloatType>>();
     }
     ~DelayLine(){}
@@ -113,8 +113,8 @@ public:
     
     
     
-    std::unique_ptr<BlockSmoothing> smoother_DelayTime;
-    std::unique_ptr<BlockSmoothing> smoother_Fraction;
+    std::unique_ptr<BlockSmoothing<float>> smoother_DelayTime;
+    std::unique_ptr<BlockSmoothing<float>> smoother_Fraction;
 private:
     std::vector<FloatType> buffer;
     // delBuffer;

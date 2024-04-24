@@ -4,8 +4,9 @@
 
 #include "JuceHeader.h"
 
-#include "JuceHeader.h"
- 
+#pragma once
+
+template<typename FloatType>
 class BlockSmoothing 
 {
 public:
@@ -15,7 +16,7 @@ public:
       
     }
 
-    void calcCoeff(float& newParam, float& currentParam, int bs)
+    void calcCoeff(FloatType& newParam, FloatType& currentParam, int bs)
     {
         inc = (newParam - currentParam) / bs;
         isSmoothing = true;
@@ -24,25 +25,26 @@ public:
     void prepare(int maxBlockSize)
     {
         maxBs = maxBlockSize;
+        fac = 1.0f / (maxBs);
     }
 
-    void calcCoeff(float& newParam, float& currentParam)
+    void calcCoeff(FloatType& newParam, FloatType& currentParam)
     {
-        inc = (newParam - currentParam) / maxBs;
+        inc = (newParam - currentParam) * fac;
         isSmoothing = true;
         this->currentParam = &currentParam;
         this->newParam = &newParam;
     }
      
 
-    float smoothing()
+    FloatType smoothing()
     {
         return *this->currentParam += inc;
     }
 
-    void smooth(float& newParam, float& currentParam)
+    void smooth(FloatType& newParam, FloatType& currentParam)
     {
-        inc = (newParam - currentParam) / maxBs;
+        inc = (newParam - currentParam) * fac;
         isSmoothing = true;
         this->currentParam = &currentParam;
         this->newParam = &newParam;
@@ -60,8 +62,9 @@ public:
     bool isSmoothing = false;
 
 private:
-    float inc = 0;
+    FloatType inc = 0;
+    FloatType fac = 0;
     size_t maxBs = 0;
-    float* currentParam = nullptr;
-    float* newParam = nullptr;
+    FloatType* currentParam = nullptr;
+    FloatType* newParam = nullptr;
 };

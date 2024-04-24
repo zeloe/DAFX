@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.24)
 
-project(RESONATOR VERSION 0.0.1)
+project(ParametricEQ VERSION 0.0.1)
 
 
 set (TARGET_NAME ${PROJECT_NAME})

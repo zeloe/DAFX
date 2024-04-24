@@ -17,7 +17,7 @@ public:
     {
         fbdelayLine  = std::make_unique<DelayLine<FloatType>>();
         ffdelayLine = std::make_unique<DelayLine<FloatType>>();
-        smoother = std::make_unique<BlockSmoothing >();
+        smoother = std::make_unique<BlockSmoothing<float>>();
         
         
     }
@@ -100,7 +100,7 @@ public:
 private:
     std::unique_ptr<DelayLine<FloatType>> ffdelayLine;
     std::unique_ptr<DelayLine<FloatType>> fbdelayLine;
-    std::unique_ptr<BlockSmoothing > smoother;
+    std::unique_ptr<BlockSmoothing<float>> smoother;
    
     double sampleRate = 0;
     float a = 0;
