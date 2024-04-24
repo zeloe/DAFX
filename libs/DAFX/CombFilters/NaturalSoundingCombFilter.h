@@ -14,24 +14,13 @@
 
 class NatComb {
 public:
-    NatComb()
-    {
-        NatComb::delayLine.resize(512);
-    };
-    ~NatComb(){};
+    NatComb(){}
+    ~NatComb(){}
     // A low Size is better like delayLineSize = 10
-    void prepare(int delayLineSize,int blocksize)
+    void prepare(int delayLineSize)
     {
-        delayLine.resize(delayLineSize + 1);
+        delayLine.setSize(1,delayLineSize + 1);
        
-        std::vector<float>::iterator ptr;
-        for(ptr = delayLine.begin(); ptr < delayLine.end(); ptr++)
-        {
-            *ptr = 0;
-          
-        }
-        
-        bs = blocksize;
         current_g  = 0;
         size = delayLineSize;
         current_delay = 0;
@@ -48,9 +37,10 @@ public:
     }
     
     
-    void process(float* input)
+    void process(float* input, const int bs)
     {
-        
+        const float* delRead = delayLine.getReadPointer(0);
+        float* delWrite = delayLine.getWritePointer(0);
         if(current_delay != delay)
         {
             
@@ -63,10 +53,14 @@ public:
                 current_fract += inc_fract;
                 readPointer = (writePointer - current_delay + size);
                 readPointer = (readPointer) % size;
-                const float y0 = delayLine[(readPointer) % size];
-                const float y1 = delayLine[(readPointer + 1) % size];
-                const float y2 = delayLine[(readPointer + 2) % size];
-                const float y3 = delayLine[(readPointer + 3) % size];
+                if(readPointer - 3 < 0)
+                {
+                    readPointer = readPointer + size;
+                }
+                const float y0 = delRead[(readPointer - 3) % size];
+                const float y1 = delRead[(readPointer - 2) % size];
+                const float y2 = delRead[(readPointer - 1) % size];
+                const float y3 = delRead[(readPointer) % size];
                 //less artifacts with higher interpolation methods
                 const float x_est = cubicInterpolation(y0, y1, y2, y3, current_fract);
                 writePointer++;
@@ -78,7 +72,7 @@ public:
                 yhold = yn;
                 xhold = x_est;
                 const float output = input[i] + gain * yn;
-                delayLine[writePointer] = output;
+                delWrite[writePointer] = output;
                 input[i] = output;
             }
             current_delay = delay;
@@ -93,13 +87,13 @@ public:
             {
                 current_g += inc_g;
                 readPointer = (writePointer - int(delay) + size) % size;
-                const float y0 = delayLine[readPointer];
+                const float y0 = delRead[readPointer];
                 writePointer = (writePointer + 1) % size;
                 yn  = b_0 * y0 + b_1 * xhold - a_1 * yhold;
                 yhold = yn;
                 xhold = y0;
                 const float output = input[i] + current_g * yn;
-                delayLine[writePointer] = output;
+                delWrite[writePointer] = output;
                 input[i] = output;
             }
             current_g = gain;
@@ -109,13 +103,13 @@ public:
             for(int i = 0; i < bs; i++)
             {
                 readPointer = (writePointer - int(delay) + size) % size;
-                const float y0 = delayLine[readPointer];
+                const float y0 = delRead[readPointer];
                 writePointer = (writePointer + 1) % size;
                 yn = b_0 * y0 + b_1 * xhold - a_1 * yhold;
                 yhold = yn;
                 xhold = y0;
                 const float output = input[i] + gain * yn;
-                delayLine[writePointer] = output;
+                delWrite[writePointer] = output;
                 input[i] = output;
                 }
             }
@@ -126,7 +120,6 @@ public:
     
     
 private:
-    size_t bs = 0;
     float current_g = 0;
     float  inc_g = 0;
     float b_0 = 0.5;
@@ -147,7 +140,7 @@ private:
     unsigned int writePointer = 0;
     unsigned int write2 = 0;
     int size = 0;
-    std::vector<float> delayLine;
+    juce::AudioBuffer<float> delayLine;
     float yn;
     unsigned int finalsize;
 };

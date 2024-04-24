@@ -7,16 +7,13 @@
 ```shell
 git clone https://github.com/zeloe/DAFX.git
 cd DAFX
-git submodule update --init --recursive
+cmake -Bbuild
 ```
-
-## Added cmake file
-to run install cmake \
-depending on your IDE and your operating system run in terminal for mac: \
-cmake -G Xcode -B test
-
 ## To Do
 - Add stereo support for each class
 - Refactor FX and make them Cmake compatible
 
 ## Not Working
+1. Still a bit chaotic.
+2. Will add more plugins in future
+3. Good resource -> [ELSE](https://github.com/porres/Live-Electronics-Tutorial)

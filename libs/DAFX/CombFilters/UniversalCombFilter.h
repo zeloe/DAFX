@@ -9,141 +9,108 @@
 */
 
 #pragma once
-#include "../Utility/Interpolation.h"
+#include "../DelayLine/DelayLine.h"
+template<typename FloatType>
 class UniversalComb {
 public:
     UniversalComb()
     {
-        UniversalComb::delayLine.resize(512);
-        UniversalComb::delayLine2.resize(512);
-    };
-    ~UniversalComb(){};
-    // A low Size is better like delayLineSize = 10
-    void prepare(int delayLineSize,int blocksize)
-    {
-        delayLine.resize(delayLineSize + 1);
-        delayLine2.resize(delayLineSize + 1);
-        std::vector<float>::iterator ptr;
-        for(ptr = delayLine.begin(); ptr < delayLine.end(); ptr++)
-        {
-            *ptr = 0;
-        }
-        for(ptr = delayLine2.begin(); ptr < delayLine2.end(); ptr++)
-        {
-            *ptr = 0;
-        }
-        bs = blocksize;
-        current_g  = 0;
-        current_delay = 0;
-        current_fract = 0;
-        size = delayLineSize;
+        fbdelayLine  = std::make_unique<DelayLine<FloatType>>();
+        ffdelayLine = std::make_unique<DelayLine<FloatType>>();
+        smoother = std::make_unique<BlockSmoothing<float>>();
+        
+        
     }
-    //delay should be smaller than size
-    //g should be from -0.90 to 0.90 if you want higher values you should scale the output after the comb filter
-    
-    void setParams(float d,float g)
+    ~UniversalComb(){}
+
+    void prepare(int delayLineSize, int maxBlockSize, double cur_sampleRate, int channels) noexcept
     {
-        float temp = (int)floor(d);
-        fract = d - temp;
-        delay = int(d);
-        gain = g;
+        ffdelayLine->prepare(delayLineSize, maxBlockSize, channels);
+        fbdelayLine->prepare(delayLineSize,maxBlockSize, channels);
+      
+        smoother->prepare(maxBlockSize);
+        this->sampleRate = cur_sampleRate;
+        tempFB = 0;
+        tempFF = 0;
+         
     }
-    
-    
-    void process(float* input)
+    void setFrequency(float hz)
     {
-        if(current_delay != delay)
+        const float period  = 1.f / hz;
+        float delayTimeSamples =  (period * sampleRate);
+        ffdelayLine->setParams(delayTimeSamples);
+        fbdelayLine->setParams(delayTimeSamples);
+         
+    }
+    void setLinGain(float g)
+    {
+        a = g;
+        smoother->smooth(a, current_a);
+    }
+   
+    template <typename ProcessContext>
+    void process(const ProcessContext& context) noexcept
+    {
+     
+        const auto& inputBlock = context.getInputBlock();
+        auto& outputBlock = context.getOutputBlock();
+        const auto numChannels = outputBlock.getNumChannels();
+        const auto numSamples = outputBlock.getNumSamples();
+
+         
+        FloatType input;
+
+        if (ffdelayLine->smoother_DelayTime->isSmoothing == true)
         {
-            
-            inc_delay = (delay - current_delay) / bs;
-            inc_fract = (fract - current_fract) / bs;
-            
-            for(int i = 0; i < bs; i++)
+            for (size_t channel = 0; channel < numChannels; ++channel)
             {
-                current_delay += inc_delay;
-                current_fract += inc_fract;
-                readPointer = (writePointer - current_delay + size);
-                readPointer = (readPointer) % size;
-                delayLine[writePointer] = output;
-                delayLine2[writePointer] = input[i];
-                const float y0 = delayLine[(readPointer) % size];
-                const float y1 = delayLine[(readPointer + 1) % size];
-                const float y2 = delayLine[(readPointer + 2) % size];
-                const float y3 = delayLine[(readPointer + 3) % size];
-                //less artifacts with higher interpolation methods
-                const float x_est = splineInterpolation(y0, y1, y2, y3, current_fract);
-                const float y02 = delayLine2[(readPointer) % size];
-                const float y12 = delayLine2[(readPointer + 1) % size];
-                const float y22 = delayLine2[(readPointer + 2) % size];
-                const float y32 = delayLine2[(readPointer + 3) % size];
-                //less artifacts with higher interpolation methods
-                const float x_est2 = splineInterpolation(y02, y12, y22, y32, current_fract);
-                writePointer++;
-                if (writePointer >= size)
+                auto* inputSamples = inputBlock.getChannelPointer(channel);
+                auto* outputSamples = outputBlock.getChannelPointer(channel);
+                for (int i = 0; i < numSamples; i++)
                 {
-                    writePointer = 0;
-                }
-                //  fb with *-1 different results
-                output = input[i] + x_est * gain * 0.5 + x_est2 * gain;
-                input[i] = output;
-            }
-            
-            current_delay = delay;
-            current_fract = fract;
-        } else if (current_g != gain) {
-            inc_g = (gain - current_g) / bs;
-            for(int i = 0; i < bs; i++)
-            {
-                current_g += inc_g;
-                delayLine[writePointer] = output;
-                delayLine2[writePointer] = input[i];
-                readPointer = (writePointer - int(delay) + size) % size;
-                const float y0 = delayLine[readPointer];
-                const float y02 = delayLine2[readPointer];
-                //  fb with *-1 different results
-                output = input[i] + y0 * current_g  * 0.5 + y02 * current_g;
-                input[i] = output;
-                writePointer = (writePointer + 1) % size;
-                
-            }
-            current_g = gain;
-        } else {
-                for(int i = 0; i < bs; i++)
-                {
-                    delayLine[writePointer] = output;
-                    delayLine2[writePointer] = input[i];
-                    readPointer = (writePointer - int(delay) + size) % size;
-                    const float y0 = delayLine[readPointer];
-                    const float y02 = delayLine2[readPointer];
-                    //  fb with *-1 different results
-                    output = input[i] + y0 * gain * 0.5 + y02 * gain;
-                    input[i] = output;
-                    writePointer = (writePointer + 1) % size;
+                    input = inputSamples[i];
+                    tempFF = ffdelayLine->processBlockInter(input * current_a);
+                    tempFB = (input)+tempFF + fbdelayLine->processBlockInter(tempFB * current_a);;
+                    outputSamples[i] = scale * (tempFB);
+                   
 
                 }
             }
+            ffdelayLine->resetSmoother();
+            fbdelayLine->resetSmoother();
+        }
+        else
+        {
+            for (size_t channel = 0; channel < numChannels; ++channel)
+            {
+                auto* inputSamples = inputBlock.getChannelPointer(channel);
+                auto* outputSamples = outputBlock.getChannelPointer(channel);
+                for (int i = 0; i < numSamples; i++)
+                {
+                    input = inputSamples[i];
+                    tempFF = ffdelayLine->processBlockInter(input * current_a);
+                    tempFB = (input)+tempFF + fbdelayLine->processBlockInter(tempFB * current_a);
+                    outputSamples[i] = scale * (tempFB);
+                }
+            }
+        }
     }
-    
-    
-    
     
     
 private:
-    size_t bs = 0;
-    float current_g = 0;
-    float  inc_g = 0;
-    float gain = 0;
-    float current_fract = 0;
-    float current_delay = 0;
-    float fract = 0;
-    float delay = 0;
-    float inc_fract = 0;
-    float inc_delay = 0;
-    unsigned int readPointer = 0;
-    unsigned int writePointer = 0;
-    int size = 0;
-    float output = 0;
-    std::vector<float> delayLine;
-    std::vector<float> delayLine2;
+    std::unique_ptr<DelayLine<FloatType>> ffdelayLine;
+    std::unique_ptr<DelayLine<FloatType>> fbdelayLine;
+    std::unique_ptr<BlockSmoothing<float>> smoother;
+   
+    double sampleRate = 0;
+    float a = 0;
+    float current_a = 0;
+    int current_bs = 0;
+    FloatType tempFB = 0;
+    FloatType tempFF = 0;
+
+    const FloatType scale = 0.1;
 };
 
+
+ 

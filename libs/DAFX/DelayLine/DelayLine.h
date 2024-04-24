@@ -9,94 +9,128 @@
 */
 
 #pragma once
+
 #include "JuceHeader.h"
 #include "../Utility/Interpolation.h"
+#include "../Utility/Block_Smoothing.h"
+
+template<typename FloatType>
 class DelayLine
 {
 public:
     DelayLine()
     {
-        DelayLine::delayBuf.resize(512);
-    };
-    ~DelayLine(){};
+        smoother_DelayTime = std::make_unique<BlockSmoothing<float>>();
+        smoother_Fraction = std::make_unique<BlockSmoothing<float>>();
+        cubicInter = std::make_unique<Interpolation<FloatType>>();
+    }
+    ~DelayLine(){}
     
-    void prepare(int delayLineSize, int blocksize)
+    void prepare(int delayLineSize, int& maxBlockSize, int channels)
     {
-        delayBuf.resize(delayLineSize);
-        std::vector<float>::iterator ptr;
-        
-        for(ptr = delayBuf.begin(); ptr < delayBuf.end(); ptr++)
-        {
-            *ptr  = 0;
-        }
-        bs = blocksize;
-        current_delay = 0;
+        this->channels = channels;
+        buffer.resize(delayLineSize);
+        std::fill(buffer.begin(), buffer.end(), 0.0f);
+       // delBuffer(&buffer);
+        //delBuffer.clear();
         size = delayLineSize;
-        output = 0;
+        
+        smoother_DelayTime->prepare(maxBlockSize);
+        smoother_Fraction->prepare(maxBlockSize);
     }
     
     void setParams(float del)
     {
         float temp = floor(del);
         fract = del - temp;
-        delay = int(del);
+        delay = temp;
+         
+        smoother_DelayTime->smooth(delay, current_delay);
+        smoother_Fraction->smooth(fract, current_fract);
     }
     
-    
-    void process(float* input)
+    void incrementDelayLine()
     {
-        if (current_delay != delay)
+        writePointer = (writePointer + 1) % size;
+    }
+     
+    
+    void resetDLine()
+    {
+        writePointer = 0;
+        readPointer = 0;
+        k = 0;
+    }
+    
+    void resetSmoother()
+    {
+        smoother_DelayTime->resetSmoother();
+        smoother_Fraction->resetSmoother();
+    }
+     
+    
+     
+    
+    
+    const FloatType processBlockInter(FloatType input)
+    {
+       
+        
+        const FloatType* delRead = buffer.data();
+        FloatType* delWrite = buffer.data();
+
+        delWrite[writePointer] = (input);
+
+        if (smoother_DelayTime->isSmoothing)
         {
-            inc_delay =(delay - current_delay) / bs;
-            inc_fract = (fract - current_fract) / bs;
-            
-            for(int i = 0; i < bs; i++)
+            readPointer = (writePointer - current_delay);
+         
+            if (readPointer - 3 < 0)
             {
-                current_delay += inc_delay;
-                current_fract += inc_fract;
-                readPointer = (writePointer - current_delay);
-                delayBuf[writePointer] = input[i];
-                if (readPointer - 3 < 0)
-                {
-                    readPointer += size;
-                }
-                const float y0 = delayBuf[(readPointer - 3 + size) % size];
-                const float y1 = delayBuf[(readPointer - 2 + size) % size];
-                const float y2 = delayBuf[(readPointer - 1 + size) % size];
-                const float y3 = delayBuf[(readPointer + size) % size];
-                
-                output = cubicInterpolation(y0, y1, y2, y3, current_fract);
-                input[i] = output;
-                writePointer = (writePointer + 1) % size;
-               
+                readPointer += size;
             }
-            current_delay = delay;
-            current_fract = fract;
+
+            const FloatType y0 = delRead[(readPointer - 3) % size];
+            const FloatType y1 = delRead[(readPointer - 2) % size];
+            const FloatType y2 = delRead[(readPointer - 1) % size];
+            const FloatType y3 = delRead[(readPointer) % size];
+
+            const FloatType output = cubicInter->cubic(y0, y1, y2, y3, current_fract);
+            this->incrementDelayLine();
+            return output;
         }
         else
         {
-            for(int i = 0; i < bs; i++)
-            {
-                delayBuf[writePointer] = input[i];
-                readPointer = (writePointer - int(delay) + size) % size;
-                const float y0 = delayBuf[readPointer];
-                input[i] = y0;
-                writePointer = (writePointer + 1) % size;
-            }
+            const FloatType y0 = delRead[(writePointer - int(current_delay) + size) % size];
+            this->incrementDelayLine();
+            return y0;
         }
     }
     
+    
+     
+    
+    
+    
+    
+    std::unique_ptr<BlockSmoothing<float>> smoother_DelayTime;
+    std::unique_ptr<BlockSmoothing<float>> smoother_Fraction;
 private:
-    std::vector<float> delayBuf;
-    size_t bs = 0;
+    std::vector<FloatType> buffer;
+    // delBuffer;
+    size_t current_bs = 0;
     float fract = 0;
     float delay = 0;
     float current_fract = 0;
     float current_delay = 0;
-    float inc_fract = 0;
-    float inc_delay = 0;
-    unsigned int readPointer = 0;
-    unsigned int writePointer = 0;
-    float output = 0;
-    int size = 0;
+    std::unique_ptr<Interpolation<FloatType>> cubicInter;
+    size_t readPointer = 0;
+    size_t writePointer = 0;
+    size_t k = 1;
+    size_t channels = 0;
+    size_t size = 0;
 };
+ 
+
+
+

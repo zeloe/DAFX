@@ -8,122 +8,112 @@
   ==============================================================================
 */
 #include "JuceHeader.h"
+#include "../Utility/Block_Smoothing.h"
 #pragma once
-class FirstOrderLowpass
+
+
+
+template<typename FloatType>
+class FirstOrderAllPass
 {
 public:
-    FirstOrderLowpass() {};
-    ~FirstOrderLowpass() {};
+    FirstOrderAllPass(FloatType sign)
+    {
+        smoother_Cutoff = std::make_unique<BlockSmoothing<FloatType>>();
+        // 1.0 = lowpass , -1.0 = highpass
+        flip = sign;
+    }
+    ~FirstOrderAllPass() {};
     
     //Call this in prepare to play
     void prepare(float sampleRate, int blocksize) noexcept
     {
         Fs = sampleRate;
-        bs = blocksize;
-        current_Wc = 0;
+        smoother_Cutoff->prepare(blocksize);
     }
-    void setParams(float fc)
+    void setCutoff(float fc)
     {
         // Wc is normalized cut-off frequency 0<Wc<1
         Wc = (2*fc) / Fs;
-        
-    }
-    void process(float* input)
-    {
-        
-        if(current_Wc != Wc){
-            inc_Wc = (Wc - current_Wc) / bs;
-            for(int i = 0; i < bs; i++) {
-                current_Wc += inc_Wc;
-                c = (tan((M_PI*current_Wc)/2.0)-1.0) / (tan((M_PI*current_Wc)/2.0)+1.0);
-                xh_new = input[i] - c * xh;
-                ap_y = c * xh_new + xh;
-                xh = xh_new;
-                input[i] =  0.5 * (input[i] + ap_y);
-                
-            }
-            current_Wc = Wc;
-        } else {
-            for(int i = 0; i < bs; i++) {
-                xh_new = input[i] - c * xh;
-                ap_y = c * xh_new + xh;
-                xh = xh_new;
-                float temp =  0.5 * (input[i] + ap_y);
-                input[i] = temp;
-            }
-            
-        }
-    }
-    
-    
-    
-private:
-    float Fs = 0;
-    float Wc = 0;
-    float current_Wc = 0;
-    float inc_Wc = 0;
-    float c = 0;
-    float xh = 0;
-    float xh_new = 0;
-    float ap_y  = 0;
-    size_t bs  =  0;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FirstOrderLowpass);
-};
-class FirstOrderHighPass
-{
-public:
-    FirstOrderHighPass() {};
-    ~FirstOrderHighPass() {};
-    //Call this in prepare to play
-    void prepare(float sampleRate, int blocksize) noexcept
-    {
+        c = (tan((juce::MathConstants<float>::pi  *  Wc) / 2.0) - 1.0) / (tan((juce::MathConstants<float>::pi *  Wc) / 2.0) + 1.0);
+         
+        smoother_Cutoff->calcCoeff(c,current_c);
        
-        Fs = sampleRate;
-        bs = blocksize;
-        current_Wc = 0;
-        
     }
-    void setParams(float fc)
+    template <typename ProcessContext>
+    void process(const ProcessContext& context) noexcept
     {
-        // Wc is normalized cut-off frequency 0<Wc<1
-        Wc = (2*fc) / Fs;
-        
+        const auto& inputBlock = context.getInputBlock();
+        auto& outputBlock = context.getOutputBlock();
+        const auto numChannels = outputBlock.getNumChannels();
+        const auto numSamples = outputBlock.getNumSamples();
+       
+        for (size_t channel = 0; channel < numChannels; ++channel)
+        {
+            auto* inputSamples = inputBlock.getChannelPointer(channel);
+            auto* outputSamples = outputBlock.getChannelPointer(channel);
+            if (smoother_Cutoff->isSmoothing) 
+            {
+                for (int i = 0; i < numSamples; i++)
+                {
+
+                    xh_new = inputSamples[i] - smoother_Cutoff->smoothing() * xh;
+                    ap_y = current_c * xh_new + xh;
+                    xh = xh_new;
+                    outputSamples[i] = scale * (inputSamples[i] + (ap_y* flip));
+                }
+            smoother_Cutoff->resetSmoother();
+            }
+            else
+            {
+                for (int i = 0; i < numSamples; i++)
+                {
+                xh_new = inputSamples[i] - current_c * xh;
+                ap_y = current_c * xh_new + xh;
+                xh = xh_new;
+                outputSamples[i] = scale * (inputSamples[i] + (ap_y * flip));
+                }
+            }
+        }  
+       
     }
-    void process(float* input)
+    
+    const FloatType processBlockInter(FloatType input)
     {
-        if(current_Wc != Wc){
-            inc_Wc = (Wc - current_Wc) / bs;
-            for(int i = 0; i < bs; i++) {
-                current_Wc += inc_Wc;
-                c = (tan((M_PI*current_Wc)/2.0)-1.0) / (tan((M_PI*current_Wc)/2.0)+1.0);
-                xh_new = input[i] - c * xh;
-                ap_y = c * xh_new + xh;
-                xh = xh_new;
-                input[i] = 0.5 * (input[i] - ap_y);
-            }
-            current_Wc = Wc;
-        } else {
-            for(int i = 0; i < bs; i++) {
-                xh_new = input[i] - c * xh;
-                ap_y = c * xh_new + xh;
-                xh = xh_new;
-                input[i] = 0.5 * (input[i] - ap_y);
-            }
-            
+        if (smoother_Cutoff->isSmoothing)
+        {
+            xh_new = input - smoother_Cutoff->smoothing() * xh;
+            ap_y = current_c * xh_new + xh;
+            xh = xh_new;
+            FloatType out = scale * (input + (ap_y * flip));
+            return out;
+        }
+        else
+        {
+            xh_new = input - current_c * xh;
+            ap_y = current_c * xh_new + xh;
+            xh = xh_new;
+            FloatType out = scale * (input + (ap_y * flip));
+            return out;
         }
     }
-    
-    
+
+
+
+
+    std::unique_ptr<BlockSmoothing<FloatType>> smoother_Cutoff;
     
 private:
+   
     float Fs = 0;
     float Wc = 0;
     float current_Wc = 0;
-    float inc_Wc = 0;
-    float c = 0;
-    float xh = 0;
-    float xh_new = 0;
-    float ap_y  = 0;
-    size_t bs  =  0;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FirstOrderHighPass);
+    FloatType current_c = 0;
+    FloatType c = 0;
+    FloatType xh = 0;
+    FloatType xh_new = 0;
+    FloatType ap_y  = 0;
+    const FloatType scale = 0.5;
+    FloatType flip = 1.0;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FirstOrderAllPass);
 };
