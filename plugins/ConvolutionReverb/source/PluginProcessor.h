@@ -9,7 +9,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../../../libs/DAFX/CombFilters/UniversalCombFilter.h"
+#include "../../../libs/DAFX/FFT/FFT_Convolution.h"
 #include "pluginparamers/PluginParameters.h"
 
 #if JUCE_USE_SIMD
@@ -23,15 +23,15 @@ static T* toBasePointer(juce::dsp::SIMDRegister<T>* r) noexcept
 
 constexpr auto registerSize = juce::dsp::SIMDRegister<float>::size();
 
-class SIMDCOMB
+class SIMDCONVOLUTION
 {
 public:
-    SIMDCOMB() 
+    SIMDCONVOLUTION()
     {
-        uniComb = std::make_unique<UniversalComb<juce::dsp::SIMDRegister<float>>>();
+        convEngine = std::make_unique<FFT_Convolution<juce::dsp::SIMDRegister<float>>>();
 
     }
-    ~SIMDCOMB() {};
+    ~SIMDCONVOLUTION() {}
     void prepare(const juce::dsp::ProcessSpec& spec)
     {
         interleaved =juce::dsp::AudioBlock<juce::dsp::SIMDRegister<float>>(interleavedBlockData, 1, spec.maximumBlockSize);
@@ -40,7 +40,7 @@ public:
         zero.clear();
         sampleRate = spec.sampleRate;   // [4]
         samplesPerBlock = spec.maximumBlockSize;
-        uniComb->prepare(samplesPerBlock * 50, samplesPerBlock, sampleRate, 2);
+        
          
     }
 
@@ -71,7 +71,7 @@ public:
             juce::AudioData::InterleavedDest<Format>      { toBasePointer(interleaved.getChannelPointer(0)), registerSize },
             numSamples); // [11]
 
-        uniComb->process(juce::dsp::ProcessContextReplacing<juce::dsp::SIMDRegister<float>>(interleaved)); // [12]
+        convEngine->process(juce::dsp::ProcessContextReplacing<juce::dsp::SIMDRegister<float>>(interleaved)); // [12]
 
         auto outChannels = prepareChannelPointers(context.getOutputBlock()); // [13]
 
@@ -85,7 +85,7 @@ public:
 
     //==============================================================================
     
-    std::unique_ptr<UniversalComb<juce::dsp::SIMDRegister<float>>> uniComb;
+    std::unique_ptr<FFT_Convolution<juce::dsp::SIMDRegister<float>>> convEngine;
     juce::dsp::AudioBlock<juce::dsp::SIMDRegister<float>> interleaved;              // [2]
     juce::dsp::AudioBlock<float> zero;
 
@@ -148,7 +148,7 @@ private:
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     void initParams();
     // Declare std::unique_ptr member variable for simdComb
-    std::unique_ptr<SIMDCOMB> simdComb;
+    std::unique_ptr<SIMDCONVOLUTION> simdConv;
     std::atomic<float>* freq = nullptr;
     std::atomic<float>* gain = nullptr;
     juce::CriticalSection audioCallbackLock;
