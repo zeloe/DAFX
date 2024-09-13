@@ -37,6 +37,7 @@ juce_add_plugin(${TARGET_NAME}
 
 		FORMATS ${FORMATS_TO_BUILD}                    # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
 		PRODUCT_NAME ${TARGET_NAME}			            # The name of the final executable, which can differ from the target name
+VST3_AUTO_MANIFEST TRUE
 		)
 
 # `juce_generate_juce_header` will create a JuceHeader.h for a given target, which will be generated
@@ -90,7 +91,7 @@ endforeach ()
 # Make the folder structure visible in the IDE
 source_group(TREE ${PROJECT_SOURCE_DIR}/../../libs/DAFX/ PREFIX "libs" FILES ${LIBS})
 
-
+add_subdirectory(binarydata)
 
 target_compile_definitions(${TARGET_NAME}
 		PUBLIC
@@ -100,12 +101,14 @@ target_compile_definitions(${TARGET_NAME}
 		JUCE_VST3_CAN_REPLACE_VST2=0
 		JUCE_DISPLAY_SPLASH_SCREEN=1
 		DONT_SET_USING_JUCE_NAMESPACE=1
+		
 		)
 
 
 
 target_link_libraries(${TARGET_NAME}
 		PRIVATE
+		BinaryData
 		juce::juce_audio_utils
 		juce::juce_dsp
 		juce::juce_opengl

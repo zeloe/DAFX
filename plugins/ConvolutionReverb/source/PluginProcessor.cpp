@@ -24,19 +24,13 @@ PluginAudioProcessor::PluginAudioProcessor()
 {
   
     simdConv = std::make_unique<SIMDCONVOLUTION>() ;
-    freq = treeState.getRawParameterValue(PluginParameter::FREQUENCY);
-    gain = treeState.getRawParameterValue(PluginParameter::GAIN);
-    for (auto param : PluginParameter::getPluginParameterList())
-    {
-            treeState.addParameterListener(param, this);
-    }
+   
     
 }
 
 PluginAudioProcessor::~PluginAudioProcessor()
 {
-    for (auto param : PluginParameter::getPluginParameterList())
-        treeState.removeParameterListener(param, this);
+    
 }
 
 
@@ -118,13 +112,25 @@ void PluginAudioProcessor::changeProgramName (int index, const juce::String& new
 //==============================================================================
 void PluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-     juce::dsp::ProcessSpec specs;
-
+    juce::dsp::ProcessSpec specs;
+    
     specs.sampleRate = sampleRate;
-    specs.maximumBlockSize = samplesPerBlock;
+    specs.maximumBlockSize = FFTSIZE;
     specs.numChannels = 2;
-   
+    simdConv->prepare(specs);
+    tempBuffer.setSize(2,samplesPerBlock);
+    tempBuffer.clear();
+    resBuffer.setSize(2, FFTSIZE * 2);
+    resBuffer.clear();
+    increment = FFTSIZE / samplesPerBlock;
+    offset = FFTSIZE / 2;
+    copyOffset = 0;
     this->initParams();
+    bs = samplesPerBlock;
+    overlapBuffer.setSize(2,samplesPerBlock);
+    overlapBuffer.clear();
+    juce::Thread::sleep(2000); // Sleep for 2 second
+    
 }
 
 void PluginAudioProcessor::releaseResources()
@@ -164,17 +170,38 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
-
+    
     // Use the actual number of channels from the buffer
     size_t numChannels = buffer.getNumChannels();
-
-    // Prepare the process context with the input and output buffers
-    juce::dsp::AudioBlock<float> audioBlock(buffer.getArrayOfWritePointers(), numChannels, buffer.getNumSamples());
-    juce::dsp::ProcessContextReplacing<float> context(audioBlock);
-
     
-    // Process the audio using the SIMD comb filter
+    
+    
+    
+    
+        tempBuffer.clear();
+        tempBuffer.copyFrom(0, 0, buffer, 0, 0, buffer.getNumSamples());
+        tempBuffer.copyFrom(1, 0, buffer, 1, 0, buffer.getNumSamples());
+        resBuffer.copyFrom(0, 0, tempBuffer, 0, 0, bs);
+        resBuffer.copyFrom(1, 0, tempBuffer, 1, 0, bs);
+     
+    // Prepare the process context with the input and output buffers
+    juce::dsp::AudioBlock<float> audioBlock(resBuffer.getArrayOfWritePointers(), numChannels, resBuffer.getNumSamples());
+    juce::dsp::ProcessContextReplacing<float> context(audioBlock);
     simdConv->process(context);
+    auto* LeftOut = buffer.getWritePointer(0);
+    auto* RightOut = buffer.getWritePointer(1);
+    auto* resLeft = resBuffer.getWritePointer(0);
+    auto* resRight = resBuffer.getWritePointer(1);
+    auto* overLapLeft = overlapBuffer.getWritePointer(0);
+    auto* overLapRight = overlapBuffer.getWritePointer(1);
+    for(int i = 0 ; i < buffer.getNumSamples(); i++) {
+        LeftOut[i] = resLeft[i] + overLapLeft[i];
+        RightOut[i] = resRight[i] + overLapRight[i];
+        overLapLeft[i] = resLeft[i +bs];
+        overLapRight[i] = resRight[i + bs];
+            
+    }
+
 }
 
 

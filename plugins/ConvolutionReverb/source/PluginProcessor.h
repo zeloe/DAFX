@@ -11,7 +11,7 @@
 #include <JuceHeader.h>
 #include "../../../libs/DAFX/FFT/FFT_Convolution.h"
 #include "pluginparamers/PluginParameters.h"
-
+const int FFTSIZE = 4096;
 #if JUCE_USE_SIMD
 
 //==============================================================================
@@ -28,7 +28,23 @@ class SIMDCONVOLUTION
 public:
     SIMDCONVOLUTION()
     {
-        convEngine = std::make_unique<FFT_Convolution<juce::dsp::SIMDRegister<float>>>();
+        std::unique_ptr<juce::MemoryInputStream> IRStream = std::make_unique<juce::MemoryInputStream>(BinaryData::IR_aif, BinaryData::IR_aifSize,true);
+        juce::AudioFormatManager formatManager;
+        formatManager.registerBasicFormats();
+       
+        // Create an AudioFormatReader from the memory stream
+        auto reader = formatManager.createReaderFor(std::move(IRStream));
+        
+        
+        
+        juce::AudioBuffer<float> audioBuffer(static_cast<int>(reader->numChannels), static_cast<int>(reader->lengthInSamples));
+        reader->read(&audioBuffer, 0, static_cast<int>(reader->lengthInSamples), 0, true, true);
+        
+        
+        
+        
+        convEngine = std::make_unique<FFT_Convolution<juce::dsp::SIMDRegister<float>>>(audioBuffer,FFTSIZE);
+        delete(reader);
 
     }
     ~SIMDCONVOLUTION() {}
@@ -147,10 +163,14 @@ private:
 
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     void initParams();
-    // Declare std::unique_ptr member variable for simdComb
+    juce::AudioBuffer<float> tempBuffer;
+    juce::AudioBuffer<float> resBuffer;
+    int offset = 0;
+    int increment = 0;
+    int copyOffset  =0;
+    int bs = 0;
     std::unique_ptr<SIMDCONVOLUTION> simdConv;
-    std::atomic<float>* freq = nullptr;
-    std::atomic<float>* gain = nullptr;
+    juce::AudioBuffer<float> overlapBuffer;
     juce::CriticalSection audioCallbackLock;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginAudioProcessor)

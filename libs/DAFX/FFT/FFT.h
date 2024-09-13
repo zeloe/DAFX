@@ -7,6 +7,8 @@
 // };
 //typedef struct cmpx COMPLEX;
 #include <JuceHeader.h>
+#ifndef FFT_H
+#define FFT_H
 template <typename T>
 class FFT {
 public:
@@ -14,14 +16,14 @@ public:
     T real;
     T imag;
     } ComplexT;
-    FFT() {}
+    FFT(): twiddle() {}
     ~FFT() {}
     
     FFT(int FFTSIZE) {
-        twiddle.resize(FFTSIZE);
-    for (int i = 0; i < (2*FFTSIZE); i++) { // Calculate twiddle factors.
-        twiddle[i].real = cos(juce::MathConstants<float>::pi*i/(2*FFTSIZE));
-        twiddle[i].imag = -sin(juce::MathConstants<float>::pi*i/(2*FFTSIZE));
+        twiddle.resize(FFTSIZE * 2);
+    for (int i = 0; i < (FFTSIZE * 2); i++) { // Calculate twiddle factors.
+        twiddle[i].real = T(cos(juce::MathConstants<float>::pi*i/(FFTSIZE * 2)));
+        twiddle[i].imag = T(-sin(juce::MathConstants<float>::pi*i/(FFTSIZE * 2)));
     }
 
     }
@@ -29,7 +31,7 @@ public:
     
     void perform(COMPLEX *Y, int M, COMPLEX *w) {      //input sample array, number of points
         
-        COMPLEX temp1,temp2;                    //temporary storage variables
+        ComplexT temp1,temp2;                    //temporary storage variables
         int i, j, k;                              //loop counter variables
         int upper_leg, lower_leg;               //index of upper/lower butterfly leg
         int leg_diff;                           //difference between upper/lower leg
@@ -85,3 +87,4 @@ public:
 private:
    
 };
+#endif //FFT_H
