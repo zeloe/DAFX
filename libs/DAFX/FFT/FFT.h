@@ -6,9 +6,10 @@
 //    float imag;
 // };
 //typedef struct cmpx COMPLEX;
-#include <JuceHeader.h>
+
 #ifndef FFT_H
 #define FFT_H
+#include <JuceHeader.h>
 template <typename T>
 class FFT {
 public:
@@ -20,10 +21,11 @@ public:
     ~FFT() {}
     
     FFT(int FFTSIZE) {
-        twiddle.resize(FFTSIZE * 2);
-    for (int i = 0; i < (FFTSIZE * 2); i++) { // Calculate twiddle factors.
-        twiddle[i].real = T(cos(juce::MathConstants<float>::pi*i/(FFTSIZE * 2)));
-        twiddle[i].imag = T(-sin(juce::MathConstants<float>::pi*i/(FFTSIZE * 2)));
+    
+        twiddle.resize(FFTSIZE);
+    for (int i = 0; i < (FFTSIZE); i++) { // Calculate twiddle factors.
+        twiddle[i].real = T(cos(juce::MathConstants<float>::pi*i/(FFTSIZE)));
+        twiddle[i].imag = T(-sin(juce::MathConstants<float>::pi*i/(FFTSIZE)));
     }
 
     }
@@ -85,6 +87,6 @@ public:
     
     std::vector<COMPLEX> twiddle;
 private:
-   
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FFT)
 };
 #endif //FFT_H
