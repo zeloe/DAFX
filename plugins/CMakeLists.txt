@@ -2,3 +2,4 @@
 add_subdirectory(CombFilter)
 add_subdirectory(ParametricEQ)
 add_subdirectory(ConvolutionReverb)
+add_subdirectory(SpectrumVisualiser)
