@@ -109,7 +109,7 @@ private:
     FloatType tempFB = 0;
     FloatType tempFF = 0;
 
-    const FloatType scale = 0.1;
+    const FloatType scale = 0.1f;
 };
 
 
