@@ -24,42 +24,14 @@ PluginAudioProcessor::PluginAudioProcessor()
 {
   
     simdComb = std::make_unique<SIMDCOMB>() ;
-    freq = treeState.getRawParameterValue(PluginParameter::FREQUENCY);
-    gain = treeState.getRawParameterValue(PluginParameter::GAIN);
-    for (auto param : PluginParameter::getPluginParameterList())
-    {
-            treeState.addParameterListener(param, this);
-    }
     
 }
 
 PluginAudioProcessor::~PluginAudioProcessor()
 {
-    for (auto param : PluginParameter::getPluginParameterList())
-        treeState.removeParameterListener(param, this);
-}
 
-
-
-void PluginAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
-{
-        if (parameterID == PluginParameter::FREQUENCY)
-        {
-            simdComb->uniComb->setFrequency(newValue);
-          
-        }
-        if (parameterID == PluginParameter::GAIN)
-        {
-            simdComb->uniComb->setLinGain(newValue);
-        }
-
-}
-
-void PluginAudioProcessor::initParams()
-{
-    simdComb->uniComb->setFrequency(*freq);
-    simdComb->uniComb->setLinGain(*gain);
-
+    
+    
 }
  
 //==============================================================================
@@ -113,15 +85,19 @@ int PluginAudioProcessor::getCurrentProgram()
 
 void PluginAudioProcessor::setCurrentProgram (int index)
 {
+    juce::ignoreUnused(index);
 }
 
 const juce::String PluginAudioProcessor::getProgramName (int index)
 {
+    juce::ignoreUnused(index);
     return {};
 }
 
 void PluginAudioProcessor::changeProgramName (int index, const juce::String& newName)
 {
+    juce::ignoreUnused(index);
+    juce::ignoreUnused(newName);
 }
 
 //==============================================================================
@@ -130,7 +106,7 @@ void PluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
      juce::dsp::ProcessSpec specs;
 
     specs.sampleRate = sampleRate;
-    specs.maximumBlockSize = samplesPerBlock;
+    specs.maximumBlockSize = uint(samplesPerBlock);
     specs.numChannels = 2;
     simdComb->prepare(specs);
     this->initParams();
@@ -171,11 +147,11 @@ bool PluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) c
 void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
+    juce::ignoreUnused(midiMessages);
+    
 
     // Use the actual number of channels from the buffer
-    size_t numChannels = buffer.getNumChannels();
+    size_t numChannels = size_t(buffer.getNumChannels());
 
     // Prepare the process context with the input and output buffers
     juce::dsp::AudioBlock<float> audioBlock(buffer.getArrayOfWritePointers(), numChannels, buffer.getNumSamples());

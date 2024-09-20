@@ -1,10 +1,10 @@
 
-#include <JuceHeader.h>
 
 
 #ifndef PLUGINPARAMETER_H
 #define PLUGINPARAMETER_H
 
+#include <JuceHeader.h>
 
 class PluginParameter
 {
@@ -12,18 +12,29 @@ public:
     PluginParameter();
     ~PluginParameter();
     
-    inline static const juce::String
-        GAIN = "param_gain",
-        FREQUENCY = "param_frequency";
+    enum ParameterIndexFloat {
+            GAIN,
+            FREQUENCY,
+            TOTAL_NUM_PARAMETERS
+        
+    };
     
-    inline static const juce::String
-        GAIN_NAME = "Gain",
-        FREQUENCY_NAME = "Frequency";
+    struct ParameterInfoFloat
+        {
+            juce::String name;
+            juce::String label;
+            float minValueFloat;
+            float maxValueFloat;
+            float defaultValueFloat;
+            
+        };
     
-    
+    inline static std::vector<ParameterInfoFloat> parameterListFloat = {
+                { "param_Gain", "Gain", -.99f, .99f, 0.5f},
+                { "param_Frequency", "Frequency", 20, 2000, 100}
+        };
+        
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    static juce::StringArray getPluginParameterList();
-    inline static juce::StringArray parameterList;
 };
 
 #endif 
