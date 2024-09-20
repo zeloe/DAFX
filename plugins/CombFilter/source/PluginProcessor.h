@@ -31,7 +31,7 @@ public:
         uniComb = std::make_unique<UniversalComb<juce::dsp::SIMDRegister<float>>>();
 
     }
-    ~SIMDCOMB() {};
+    ~SIMDCOMB() {}
     void prepare(const juce::dsp::ProcessSpec& spec)
     {
         interleaved =juce::dsp::AudioBlock<juce::dsp::SIMDRegister<float>>(interleavedBlockData, 1, spec.maximumBlockSize);
@@ -99,7 +99,7 @@ public:
 //=============================================================================
 /**
 */
-class PluginAudioProcessor  : public juce::AudioProcessor, public juce::AudioProcessorValueTreeState::Listener
+class PluginAudioProcessor  : public juce::AudioProcessor
                             #if JucePlugin_Enable_ARA
                              , public juce::AudioProcessorARAExtension
                             #endif
@@ -145,7 +145,7 @@ public:
     juce::AudioProcessorValueTreeState treeState;
 private:
 
-    void parameterChanged(const juce::String& parameterID, float newValue) override;
+    
     void initParams();
     // Declare std::unique_ptr member variable for simdComb
     std::unique_ptr<SIMDCOMB> simdComb;
