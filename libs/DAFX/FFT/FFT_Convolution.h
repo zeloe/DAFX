@@ -10,22 +10,27 @@ class FFT_Convolution {
 public:
     ~FFT_Convolution()
     {
-        // Ensure threads are joined in destructor to avoid terminating while threads are running
-        if (partition1.joinable()) partition1.join();
+        
+     
         if (partition2.joinable()) partition2.join();
         if (partition3.joinable()) partition3.join();
       
     }
     
     
-    FFT_Convolution(juce::AudioBuffer<float>& IR, int FFTSIZE) 
+    FFT_Convolution() 
     {
+       
+    }
+    
+    void prepare(juce::AudioBuffer<float>& IR, int FFTSIZE) {
         //Pad Buffer and set array sizes
         
         fftSize = FFTSIZE;
         fft = std::make_unique<FFT<T>>((fftSize));
+       
         int tempParts = (IR.getNumSamples() / fftSize) + 2;
-        size = tempParts * fftSize;
+        size = tempParts * fftSize * 2;
         
         juce::AudioBuffer<float> tempBuffer;
         tempBuffer.setSize(1,size);
@@ -73,11 +78,21 @@ public:
         float* timeDomainData = tempBuffer.getWritePointer(0);
        
         //Perpare Data
-        for (int parts = 0; parts < tempParts; parts++) {
+        int copyParts = tempParts * 2;
+        int tempCopyFFTSize = fftSize / 2;
+        int halfOffset = 0;
+        for (int parts = 0; parts < copyParts; parts++) {
             
             //Load temporary data
+            
             for(int i = 0; i < fftSize; i++) {
-                tempFDBptr[i].real = timeDomainData[i + offset];
+                tempFDBptr[i].real = T(0.f);
+                tempFDBptr[i].imag = T(0.f);
+            }
+            
+            
+            for(int i = 0; i < tempCopyFFTSize; i++) {
+                tempFDBptr[i].real = timeDomainData[i + halfOffset];
                 tempFDBptr[i].imag = T(0.f);
             }
             //analysis
@@ -89,25 +104,37 @@ public:
             }
             //advance in data
             tempoffset += fftSize;
+            halfOffset += tempCopyFFTSize;
         }
         partitions = int(tempParts / 3);
         offset = int(size / 3);
         float inv = 1.f / fftSize;
         fftInv = inv;
-        startThreads();
-     
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
     }
     
     void startThreads()
     {
-        partition1 = std::thread  (&FFT_Convolution::complexMultiply,this,FDL.data(),FDIRB.data(),0);
         partition2 = std::thread  (&FFT_Convolution::complexMultiply,this,FDL.data(),FDIRB.data(),offset);
         partition3 = std::thread  (&FFT_Convolution::complexMultiply,this,FDL.data(),FDIRB.data(),offset * 2);
         return;
     }
     
     void synchThreads() {
-        partition1.join();
         partition2.join();
         partition3.join();
         return;
@@ -121,21 +148,27 @@ public:
         auto& outputBlock = context.getOutputBlock();
     
         const auto numSamples = outputBlock.getNumSamples();
-        synchThreads();
         
         auto* inputData = inputBlock.getChannelPointer(0);
         auto* FDBptr = FDB.data();
+        for(int i = 0; i < fftSize; i++) {
+            FDBptr[i].imag = T(0);
+            FDBptr[i].real = T(0);
+        }
+        
+        
        
         for(int i = 0; i < fftSize; i++) {
             FDBptr[i].real = inputData[i];
-            FDBptr[i].imag = T(0);
         }
        
         fft->perform(FDB.data(),fftSize,fft->twiddle.data());
        
         frequencyDomainDelayLine(FDL.data(),FDB.data());
+        complexMultiply(FDL.data(),FDIRB.data(),0);
+        //this is bad
         startThreads();
-        
+        synchThreads();
 
         auto* resDat = AccumBuffer.data();
         for(int i = 0; i < fftSize; i++) {
@@ -146,13 +179,14 @@ public:
         fft->perform(AccumBuffer.data(),fftSize,fft->twiddle.data());
         auto* resPtr = AccumBuffer.data();
         auto* outputPtr = outputBlock.getChannelPointer(0);
-        for(int i = 0; i < numSamples; i++) {
-            outputPtr[i] = resPtr[i].real * fftInv * T(0.015f);
+        for(int i = 0; i < fftSize; i++) {
+            outputPtr[i] = resPtr[i].real * fftInv * T(0.15f);
         }
-        for(int i = 0; i < numSamples; i++) {
+        for(int i = 0; i < fftSize; i++) {
             resPtr[i].real = T(0.f);
             resPtr[i].imag = T(0.f);
         }
+       
         return;
         
     }
@@ -212,7 +246,6 @@ private:
     int offset = 0;
     T fftInv = 0;
     //different threads
-    std::thread partition1 ;
     std::thread partition2 ;
     std::thread partition3 ;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FFT_Convolution)
