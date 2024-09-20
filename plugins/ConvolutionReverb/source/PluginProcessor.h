@@ -10,8 +10,8 @@
 
 #include <JuceHeader.h>
 #include "../../../libs/DAFX/FFT/FFT_Convolution.h"
+#include "../../../libs/DAFX/Utility/UtilFunctions.h"
 #include "pluginparamers/PluginParameters.h"
-const int FFTSIZE = 4096;
 #if JUCE_USE_SIMD
 
 //==============================================================================
@@ -28,6 +28,17 @@ class SIMDCONVOLUTION
 public:
     SIMDCONVOLUTION()
     {
+        convEngine = std::make_unique<FFT_Convolution<juce::dsp::SIMDRegister<float>>>();
+    }
+    ~SIMDCONVOLUTION() {}
+    void prepare(const juce::dsp::ProcessSpec& spec)
+    {
+        interleaved =juce::dsp::AudioBlock<juce::dsp::SIMDRegister<float>>(interleavedBlockData, 1, spec.maximumBlockSize);
+        zero = juce::dsp::AudioBlock<float>(zeroData, juce::dsp::SIMDRegister<float>::size(), spec.maximumBlockSize); // [6]
+
+        zero.clear();
+        sampleRate = spec.sampleRate;   // [4]
+        samplesPerBlock = spec.maximumBlockSize;
         std::unique_ptr<juce::MemoryInputStream> IRStream = std::make_unique<juce::MemoryInputStream>(BinaryData::IR_aif, BinaryData::IR_aifSize,true);
         juce::AudioFormatManager formatManager;
         formatManager.registerBasicFormats();
@@ -39,25 +50,11 @@ public:
         
         juce::AudioBuffer<float> audioBuffer(static_cast<int>(reader->numChannels), static_cast<int>(reader->lengthInSamples));
         reader->read(&audioBuffer, 0, static_cast<int>(reader->lengthInSamples), 0, true, true);
-        
-        
-        
-        
-        convEngine = std::make_unique<FFT_Convolution<juce::dsp::SIMDRegister<float>>>(audioBuffer,FFTSIZE);
-        delete(reader);
-
-    }
-    ~SIMDCONVOLUTION() {}
-    void prepare(const juce::dsp::ProcessSpec& spec)
-    {
-        interleaved =juce::dsp::AudioBlock<juce::dsp::SIMDRegister<float>>(interleavedBlockData, 1, spec.maximumBlockSize);
-        zero = juce::dsp::AudioBlock<float>(zeroData, juce::dsp::SIMDRegister<float>::size(), spec.maximumBlockSize); // [6]
-
-        zero.clear();
-        sampleRate = spec.sampleRate;   // [4]
-        samplesPerBlock = spec.maximumBlockSize;
-        
          
+        convEngine->prepare(audioBuffer, spec.maximumBlockSize);
+        
+        
+        delete(reader);
     }
 
     template <typename SampleType>

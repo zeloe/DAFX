@@ -115,21 +115,16 @@ void PluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     juce::dsp::ProcessSpec specs;
     
     specs.sampleRate = sampleRate;
-    specs.maximumBlockSize = FFTSIZE;
+    //for overlap save method
+    specs.maximumBlockSize = nextPower_2(samplesPerBlock) * 2;
     specs.numChannels = 2;
     simdConv->prepare(specs);
-    tempBuffer.setSize(2,samplesPerBlock);
+    tempBuffer.setSize(2,specs.maximumBlockSize);
     tempBuffer.clear();
-    resBuffer.setSize(2, FFTSIZE * 2);
-    resBuffer.clear();
-    increment = FFTSIZE / samplesPerBlock;
-    offset = FFTSIZE / 2;
-    copyOffset = 0;
+    overlapBuffer.setSize(2, specs.maximumBlockSize);
+    overlapBuffer.clear();
     this->initParams();
     bs = samplesPerBlock;
-    overlapBuffer.setSize(2,samplesPerBlock);
-    overlapBuffer.clear();
-    juce::Thread::sleep(2000); // Sleep for 2 second
     
 }
 
@@ -181,24 +176,23 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         tempBuffer.clear();
         tempBuffer.copyFrom(0, 0, buffer, 0, 0, buffer.getNumSamples());
         tempBuffer.copyFrom(1, 0, buffer, 1, 0, buffer.getNumSamples());
-        resBuffer.copyFrom(0, 0, tempBuffer, 0, 0, bs);
-        resBuffer.copyFrom(1, 0, tempBuffer, 1, 0, bs);
+        
      
     // Prepare the process context with the input and output buffers
-    juce::dsp::AudioBlock<float> audioBlock(resBuffer.getArrayOfWritePointers(), numChannels, resBuffer.getNumSamples());
+    juce::dsp::AudioBlock<float> audioBlock(tempBuffer.getArrayOfWritePointers(), numChannels, tempBuffer.getNumSamples());
     juce::dsp::ProcessContextReplacing<float> context(audioBlock);
     simdConv->process(context);
     auto* LeftOut = buffer.getWritePointer(0);
     auto* RightOut = buffer.getWritePointer(1);
-    auto* resLeft = resBuffer.getWritePointer(0);
-    auto* resRight = resBuffer.getWritePointer(1);
-    auto* overLapLeft = overlapBuffer.getWritePointer(0);
-    auto* overLapRight = overlapBuffer.getWritePointer(1);
+    auto* resLeft = tempBuffer.getReadPointer(0);
+    auto* resRight = tempBuffer.getReadPointer(1);
+    auto* overlapLeft = overlapBuffer.getWritePointer(0);
+    auto* overlapRight = overlapBuffer.getWritePointer(1);
     for(int i = 0 ; i < buffer.getNumSamples(); i++) {
-        LeftOut[i] = resLeft[i] + overLapLeft[i];
-        RightOut[i] = resRight[i] + overLapRight[i];
-        overLapLeft[i] = resLeft[i +bs];
-        overLapRight[i] = resRight[i + bs];
+        LeftOut[i] = resLeft[i] + overlapLeft[i];
+        RightOut[i] = resRight[i] + overlapRight[i];
+        overlapLeft[i] = resLeft[i];
+        overlapRight[i] = resRight[i];
             
     }
 
