@@ -109,7 +109,6 @@ void PluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     specs.maximumBlockSize = uint(samplesPerBlock);
     specs.numChannels = 2;
     simdComb->prepare(specs);
-    this->initParams();
 }
 
 void PluginAudioProcessor::releaseResources()

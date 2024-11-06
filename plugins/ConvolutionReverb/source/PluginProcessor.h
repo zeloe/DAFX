@@ -9,106 +9,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../../../libs/DAFX/FFT/FFT_Convolution.h"
-#include "../../../libs/DAFX/Utility/UtilFunctions.h"
 #include "pluginparamers/PluginParameters.h"
-#if JUCE_USE_SIMD
-
-//==============================================================================
-template <typename T>
-static T* toBasePointer(juce::dsp::SIMDRegister<T>* r) noexcept
-{
-    return reinterpret_cast<T*> (r);
-}
-
-constexpr auto registerSize = juce::dsp::SIMDRegister<float>::size();
-
-class SIMDCONVOLUTION
-{
-public:
-    SIMDCONVOLUTION()
-    {
-        convEngine = std::make_unique<FFT_Convolution<juce::dsp::SIMDRegister<float>>>();
-    }
-    ~SIMDCONVOLUTION() {}
-    void prepare(const juce::dsp::ProcessSpec& spec)
-    {
-        interleaved =juce::dsp::AudioBlock<juce::dsp::SIMDRegister<float>>(interleavedBlockData, 1, spec.maximumBlockSize);
-        zero = juce::dsp::AudioBlock<float>(zeroData, juce::dsp::SIMDRegister<float>::size(), spec.maximumBlockSize); // [6]
-
-        zero.clear();
-        sampleRate = spec.sampleRate;   // [4]
-        samplesPerBlock = spec.maximumBlockSize;
-        std::unique_ptr<juce::MemoryInputStream> IRStream = std::make_unique<juce::MemoryInputStream>(BinaryData::IR_aif, BinaryData::IR_aifSize,true);
-        juce::AudioFormatManager formatManager;
-        formatManager.registerBasicFormats();
-       
-        // Create an AudioFormatReader from the memory stream
-        auto reader = formatManager.createReaderFor(std::move(IRStream));
-        
-        
-        
-        juce::AudioBuffer<float> audioBuffer(static_cast<int>(reader->numChannels), static_cast<int>(reader->lengthInSamples));
-        reader->read(&audioBuffer, 0, static_cast<int>(reader->lengthInSamples), 0, true, true);
-         
-        convEngine->prepare(audioBuffer, spec.maximumBlockSize);
-        
-        
-        delete(reader);
-    }
-
-    template <typename SampleType>
-    auto prepareChannelPointers(const juce::dsp::AudioBlock<SampleType>& block)
-    {
-        std::array<SampleType*, registerSize> result{};
-
-        for (size_t ch = 0; ch < result.size(); ++ch)
-            result[ch] = (ch < block.getNumChannels() ? block.getChannelPointer(ch) : zero.getChannelPointer(ch));
-
-        return result;
-    }
-
-    void process(const juce::dsp::ProcessContextReplacing<float>& context)
-    {
-        jassert(context.getInputBlock().getNumSamples() == context.getOutputBlock().getNumSamples());
-        jassert(context.getInputBlock().getNumChannels() == context.getOutputBlock().getNumChannels());
-
-        const auto& input = context.getInputBlock(); // [9]
-        const auto numSamples = (int)input.getNumSamples();
-
-        auto inChannels = prepareChannelPointers(input); // [10]
-
-        using Format = juce::AudioData::Format<juce::AudioData::Float32, juce::AudioData::NativeEndian>;
-
-        juce::AudioData::interleaveSamples(juce::AudioData::NonInterleavedSource<Format> { inChannels.data(), registerSize, },
-            juce::AudioData::InterleavedDest<Format>      { toBasePointer(interleaved.getChannelPointer(0)), registerSize },
-            numSamples); // [11]
-
-        convEngine->process(juce::dsp::ProcessContextReplacing<juce::dsp::SIMDRegister<float>>(interleaved)); // [12]
-
-        auto outChannels = prepareChannelPointers(context.getOutputBlock()); // [13]
-
-        juce::AudioData::deinterleaveSamples(juce::AudioData::InterleavedSource<Format>  { toBasePointer(interleaved.getChannelPointer(0)), registerSize },
-            juce::AudioData::NonInterleavedDest<Format> { outChannels.data(), registerSize },
-            numSamples); // [14]
-    }
-
-   
-     
-
-    //==============================================================================
-    
-    std::unique_ptr<FFT_Convolution<juce::dsp::SIMDRegister<float>>> convEngine;
-    juce::dsp::AudioBlock<juce::dsp::SIMDRegister<float>> interleaved;              // [2]
-    juce::dsp::AudioBlock<float> zero;
-
-    juce::HeapBlock<char> interleavedBlockData, zeroData;               // [3]
-
-    
-    double sampleRate = 0.0;
-    size_t samplesPerBlock = 0;
-};
-#endif
+#include "ThreadHandling.h"
 //=============================================================================
 /**
 */
@@ -166,7 +68,7 @@ private:
     int increment = 0;
     int copyOffset  =0;
     int bs = 0;
-    std::unique_ptr<SIMDCONVOLUTION> simdConv;
+    std::unique_ptr<FilterPartitionThread> convPipeLine;
     juce::AudioBuffer<float> overlapBuffer;
     juce::CriticalSection audioCallbackLock;
     //==============================================================================

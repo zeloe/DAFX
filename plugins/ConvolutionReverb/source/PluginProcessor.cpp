@@ -23,7 +23,7 @@ PluginAudioProcessor::PluginAudioProcessor()
 #endif
 {
   
-    simdConv = std::make_unique<SIMDCONVOLUTION>() ;
+    convPipeLine = std::make_unique<FilterPartitionThread>() ;
    
     
 }
@@ -116,9 +116,9 @@ void PluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     
     specs.sampleRate = sampleRate;
     //for overlap save method
-    specs.maximumBlockSize = nextPower_2(samplesPerBlock) * 2;
+    specs.maximumBlockSize = 2048;
     specs.numChannels = 2;
-    simdConv->prepare(specs);
+    convPipeLine->prepare(specs);
     tempBuffer.setSize(2,specs.maximumBlockSize);
     tempBuffer.clear();
     overlapBuffer.setSize(2, specs.maximumBlockSize);
@@ -166,35 +166,38 @@ void PluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
-    // Use the actual number of channels from the buffer
-    size_t numChannels = buffer.getNumChannels();
     
-    
-    
-    
-    
-        tempBuffer.clear();
-        tempBuffer.copyFrom(0, 0, buffer, 0, 0, buffer.getNumSamples());
-        tempBuffer.copyFrom(1, 0, buffer, 1, 0, buffer.getNumSamples());
+    tempBuffer.clear();
+    tempBuffer.copyFrom(0, 0, buffer, 0, 0, buffer.getNumSamples());
+    tempBuffer.copyFrom(1, 0, buffer, 1, 0, buffer.getNumSamples());
         
      
     // Prepare the process context with the input and output buffers
-    juce::dsp::AudioBlock<float> audioBlock(tempBuffer.getArrayOfWritePointers(), numChannels, tempBuffer.getNumSamples());
-    juce::dsp::ProcessContextReplacing<float> context(audioBlock);
-    simdConv->process(context);
-    auto* LeftOut = buffer.getWritePointer(0);
-    auto* RightOut = buffer.getWritePointer(1);
-    auto* resLeft = tempBuffer.getReadPointer(0);
-    auto* resRight = tempBuffer.getReadPointer(1);
-    auto* overlapLeft = overlapBuffer.getWritePointer(0);
-    auto* overlapRight = overlapBuffer.getWritePointer(1);
-    for(int i = 0 ; i < buffer.getNumSamples(); i++) {
-        LeftOut[i] = resLeft[i] + overlapLeft[i];
-        RightOut[i] = resRight[i] + overlapRight[i];
-        overlapLeft[i] = resLeft[i];
-        overlapRight[i] = resRight[i];
-            
-    }
+ 
+    convPipeLine->push(tempBuffer);
+    //copy results back
+    
+    
+    // Retrieve processed data from the SIMD FIFO (for example, after overlap-add processing)
+    auto readScoped = convPipeLine->conv->outputFifo->read(buffer.getNumSamples());
+
+        if (readScoped.blockSize1 > 0)
+        {
+            for (int chan = 0; chan < totalNumOutputChannels; ++chan)
+            {
+                // Copy processed data from the FIFO buffer back to the output audio buffer
+                buffer.copyFrom(chan, 0, convPipeLine->conv->outputFifoBuffer, chan, readScoped.startIndex1, readScoped.blockSize1);
+            }
+        }
+
+        if (readScoped.blockSize2 > 0)
+        {
+            for (int chan = 0; chan < totalNumOutputChannels; ++chan)
+            {
+                // Copy remaining processed data if the FIFO wrapped around
+                buffer.copyFrom(chan, readScoped.blockSize1,  convPipeLine->conv->outputFifoBuffer, chan, readScoped.startIndex2, readScoped.blockSize2);
+            }
+        }
 
 }
 

@@ -31,6 +31,10 @@ FetchContent_Declare(juce
     BINARY_DIR     "${FETCHCONTENT_BASE_DIR}/JUCE-Build")
 
 FetchContent_MakeAvailable(juce)
+# Set the destination directory for the VSTS
+set(PLUGIN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/PluginVST")
 
+# Create the directory if it doesn't exist
+file(MAKE_DIRECTORY ${PLUGIN_OUTPUT_DIR})
 
 add_subdirectory(plugins)

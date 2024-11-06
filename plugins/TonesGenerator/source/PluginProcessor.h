@@ -56,10 +56,10 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
     juce::AudioProcessorValueTreeState treeState;
-   
+    std::unique_ptr<SIMDProcessor> simdProcessor;
     
 private:
-    std::unique_ptr<SIMDProcessor> simdProcessor;
+   
     juce::AudioBuffer<float> mono;
     void initParams();
     

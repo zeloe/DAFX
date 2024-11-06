@@ -12,8 +12,6 @@ public:
     {
         
      
-        if (partition2.joinable()) partition2.join();
-        if (partition3.joinable()) partition3.join();
       
     }
     
@@ -105,14 +103,22 @@ public:
             //advance in data
             tempoffset += fftSize;
             halfOffset += tempCopyFFTSize;
+            
         }
-        partitions = int(tempParts / 3);
-        offset = int(size / 3);
+        partitions = int(tempParts);
+        offset = int(size);
         float inv = 1.f / fftSize;
         fftInv = inv;
         
-        
-        
+        outputBuffer.resize(fftSize);
+        overLapBuffer.resize(fftSize);
+        // fill with 0
+        T* ptr = outputBuffer.data();
+        T* ptr2 = overLapBuffer.data();
+        for(int i =0; i < fftSize; i++) {
+            ptr[i] =T(0.f);
+            ptr2[i] =T(0.f);
+        }
         
         
         
@@ -127,18 +133,7 @@ public:
         
     }
     
-    void startThreads()
-    {
-        partition2 = std::thread  (&FFT_Convolution::complexMultiply,this,FDL.data(),FDIRB.data(),offset);
-        partition3 = std::thread  (&FFT_Convolution::complexMultiply,this,FDL.data(),FDIRB.data(),offset * 2);
-        return;
-    }
-    
-    void synchThreads() {
-        partition2.join();
-        partition3.join();
-        return;
-    }
+   
     
     
     template <typename ProcessContext>
@@ -166,9 +161,7 @@ public:
        
         frequencyDomainDelayLine(FDL.data(),FDB.data());
         complexMultiply(FDL.data(),FDIRB.data(),0);
-        //this is bad
-        startThreads();
-        synchThreads();
+       
 
         auto* resDat = AccumBuffer.data();
         for(int i = 0; i < fftSize; i++) {
@@ -179,9 +172,17 @@ public:
         fft->perform(AccumBuffer.data(),fftSize,fft->twiddle.data());
         auto* resPtr = AccumBuffer.data();
         auto* outputPtr = outputBlock.getChannelPointer(0);
-        for(int i = 0; i < fftSize; i++) {
-            outputPtr[i] = resPtr[i].real * fftInv * T(0.15f);
+        T* overlap = overLapBuffer.data();
+        for(int i = 0; i < 1024; i++) {
+            outputPtr[i] = (resPtr[i].real + overlap[i]) * fftInv;
+            overlap[i] = resPtr[i + 1024].real;
         }
+        
+      
+        
+        
+        
+        
         for(int i = 0; i < fftSize; i++) {
             resPtr[i].real = T(0.f);
             resPtr[i].imag = T(0.f);
@@ -239,15 +240,15 @@ private:
     std::vector<typename FFT<T>::ComplexT> FDB;
     //AccumBuffer
     std::vector<typename FFT<T>::ComplexT> AccumBuffer;
-    
+    //
+    std::vector<T> outputBuffer;
+    std::vector<T> overLapBuffer;
     size_t size = 0;
     int fftSize = 0;
     int partitions = 0;
     int offset = 0;
     T fftInv = 0;
-    //different threads
-    std::thread partition2 ;
-    std::thread partition3 ;
+   
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FFT_Convolution)
 };
 #endif // FFT_CONVOLUTION_H

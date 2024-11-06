@@ -59,29 +59,60 @@ public:
     }
     
     T process() {
-
-        auto index0 = (unsigned int)currentIndex;
-        auto index1 = index0 + 1;
-        auto index2 = index0 + 2;
-        auto index3 = index0 + 3;
-        auto frac = currentIndex - (float)index0;
         
-        const float * table = waveTable.getReadPointer(0);
+        auto index0 = (unsigned int)currentIndex;        // Base index (integer part of currentIndex)
+        auto frac = currentIndex - (float)index0;        // Fractional part of currentIndex
         
-        T value0 = juce::dsp::SIMDRegister<float>::fromNative({ table[index0 % tableSize], table[(index0 + 1) % tableSize],table[(index0 + 2) % tableSize],table[(index0 + 3) % tableSize] });
-        T value1 = juce::dsp::SIMDRegister<float>::fromNative({ table[index1 % tableSize], table[(index1 + 1) % tableSize],table[(index1 + 2) % tableSize],table[(index1 + 3) % tableSize] });
-        T value2 = juce::dsp::SIMDRegister<float>::fromNative({ table[index2 % tableSize], table[(index2 + 1) % tableSize],table[(index2 + 2) % tableSize],table[(index2 + 3) % tableSize] });
-        T value3 = juce::dsp::SIMDRegister<float>::fromNative({ table[index3 % tableSize], table[(index3 + 1) % tableSize],table[(index3 + 2) % tableSize],table[(index3 + 3) % tableSize] });
-        T currentSample = cubic(value0, value1, value2, value3, frac);
+        // Use SIMD to handle the 4-point interpolation
+        juce::dsp::SIMDRegister<float> fracSIMD = juce::dsp::SIMDRegister<float>::fromNative({
+            frac, frac, frac, frac
+        });
+        
+        // Handle wrapping at the end of the wavetable
+        auto wrapIndex = [this](unsigned int index) {
+            return index % this->tableSize;  // Capture 'this' if 'tableSize' is a member variable
+        };
+        
+        // Load the table values for 4 consecutive points for cubic interpolation
+        const float* table = waveTable.getReadPointer(0);
+        T value0 = juce::dsp::SIMDRegister<float>::fromNative({
+            table[wrapIndex(index0)],
+            table[wrapIndex(index0 + 1)],
+            table[wrapIndex(index0 + 2)],
+            table[wrapIndex(index0 + 3)]
+        });
+        
+        T value1 = juce::dsp::SIMDRegister<float>::fromNative({
+            table[wrapIndex(index0 + 1)],
+            table[wrapIndex(index0 + 2)],
+            table[wrapIndex(index0 + 3)],
+            table[wrapIndex(index0 + 4)]
+        });
+        
+        T value2 = juce::dsp::SIMDRegister<float>::fromNative({
+            table[wrapIndex(index0 + 2)],
+            table[wrapIndex(index0 + 3)],
+            table[wrapIndex(index0 + 4)],
+            table[wrapIndex(index0 + 5)]
+        });
+        
+        T value3 = juce::dsp::SIMDRegister<float>::fromNative({
+            table[wrapIndex(index0 + 3)],
+            table[wrapIndex(index0 + 4)],
+            table[wrapIndex(index0 + 5)],
+            table[wrapIndex(index0 + 6)]
+        });
+        
+        // Perform SIMD-aware cubic interpolation
+        T currentSample = cubic(value0, value1, value2, value3, fracSIMD);
+        
+        // Update the current index, and ensure it wraps around the table size
         currentIndex += frequency;
-
-        if ((currentIndex) > (float)tableSize)
-            currentIndex -= (float)tableSize;
-
-        return currentSample;
+        if (currentIndex >= tableSize) {
+            currentIndex -= tableSize;
+        }
         
-       
-       
+        return currentSample;
     }
 private:
     juce::AudioSampleBuffer waveTable;
@@ -95,19 +126,16 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WaveTableProcessor)
 };
 
-class SineTable
+class WaveTables
 {
 public:
-    SineTable(const SineTable&) = delete;
-    SineTable& operator=(const SineTable&) = delete;
-    SineTable(SineTable&&) = default;
    
-    SineTable()
+    WaveTables(int index)
     {
-        createWavetable();
+        createWavetable(index);
     }
    
-    ~SineTable()
+    ~WaveTables()
     {
 
 
@@ -115,19 +143,94 @@ public:
 
      
     
-    void createWavetable()
+    void createWavetable(int index)
     {
         const int tableSize = 4096;
         waveTable.setSize(1, (int)tableSize + 1);
         waveTable.clear();
         auto* samples = waveTable.getWritePointer(0);
-        for (int i = 0; i < tableSize; ++i)
+        switch(index)
         {
-            samples[i] = std::sin(juce::MathConstants<float>::twoPi * float(i) / float(tableSize));
+            case 0: // sine
+            {
+                for (int i = 0; i < tableSize; ++i)
+                {
+                    samples[i] = std::sin(juce::MathConstants<float>::twoPi * float(i) / float(tableSize));
+                }
+                break;
+            }
+            case 1: // some other waveform
+            {
+                bool over = false;
+                unsigned int count = 0;
+                unsigned int halfsize = tableSize / 2;
+                for (int i = 0; i < tableSize; ++i)
+                {
+                    if (!over)
+                    {
+                        samples[i] = (float(count) / float(tableSize / 2));
+                        if (count >= halfsize) // Changed to >=
+                        {
+                            over = true;
+                        }
+                        count++;
+                    }
+                    else
+                    {
+                        samples[i] = (float(count) / float(tableSize / 2));
+                        count--;
+                    }
+                }
+                break;
+            }
+            case 2: // Sawtooth
+            {
+                for (int i = 0; i < tableSize; ++i)
+                {
+                    samples[i] = (float(i) / float(tableSize));
+                }
+                break;
+            }
+            case 3: // Square
+            {
+                bool over = false; // Reinitialize over
+                unsigned int count = 0; // Reinitialize count
+                unsigned int halfsize = tableSize / 2;
+                for (int i = 0; i < tableSize; ++i)
+                {
+                    if (!over)
+                    {
+                        samples[i] = 1;
+                        count++;
+                        if (count >= halfsize) // Changed to >=
+                        {
+                            over = true;
+                        }
+                    }
+                    else
+                    {
+                        samples[i] = -1;
+                    }
+                }
+                break;
+            }
+            case 4: // Noise
+            {
+                juce::Random rand;
+                for (int i = 0; i < tableSize; ++i)
+                {
+                    samples[i] = rand.nextFloat();
+                }
+                break;
+            }
+            case 5: // PinkNoise
+            {
+                // Implement pink noise generation here
+                break;
+            }
         }
-        return;
-    }
 
+    }
    
     juce::AudioSampleBuffer waveTable;
 };

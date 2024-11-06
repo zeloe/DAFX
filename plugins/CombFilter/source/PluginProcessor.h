@@ -28,7 +28,7 @@ class SIMDCOMB
 public:
     SIMDCOMB() 
     {
-        uniComb = std::make_unique<UniversalComb<juce::dsp::SIMDRegister<float>>>();
+        uniComb = std::make_unique<C_UniversalComb<juce::dsp::SIMDRegister<float>>>();
 
     }
     ~SIMDCOMB() {}
@@ -40,7 +40,7 @@ public:
         zero.clear();
         sampleRate = spec.sampleRate;   // [4]
         samplesPerBlock = spec.maximumBlockSize;
-        uniComb->prepare(samplesPerBlock * 50, samplesPerBlock, sampleRate, 2);
+        uniComb->prepare(samplesPerBlock,sampleRate);
          
     }
 
@@ -85,7 +85,7 @@ public:
 
     //==============================================================================
     
-    std::unique_ptr<UniversalComb<juce::dsp::SIMDRegister<float>>> uniComb;
+    std::unique_ptr<C_UniversalComb<juce::dsp::SIMDRegister<float>>> uniComb;
     juce::dsp::AudioBlock<juce::dsp::SIMDRegister<float>> interleaved;              // [2]
     juce::dsp::AudioBlock<float> zero;
 
@@ -145,8 +145,6 @@ public:
     juce::AudioProcessorValueTreeState treeState;
 private:
 
-    
-    void initParams();
     // Declare std::unique_ptr member variable for simdComb
     std::unique_ptr<SIMDCOMB> simdComb;
     std::atomic<float>* freq = nullptr;

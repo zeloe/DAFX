@@ -13,7 +13,7 @@
 #include <JuceHeader.h>
 #include "../../../libs/DAFX/WaveShapes/WaveShapes.h"
 #include "pluginparamers/PluginParameters.h"
-
+#include "../../../libs/DAFX/MultiUtils/SpinLock.h"
 //==============================================================================
 template <typename T>
 static T* toBasePointer(juce::dsp::SIMDRegister<T>* r) noexcept
@@ -30,7 +30,12 @@ public:
     {
         //make  wavetableprocessor
         waveTableProcessor = std::make_unique<WaveTableProcessor<juce::dsp::SIMDRegister<float>>>();
+        
         getParams();
+        int idx = int(waveTableIDX->getValue() * 5);
+        currentWaveTable =  std::make_unique<WaveTables>(idx);
+        //set the wavetable
+        waveTableProcessor->getWaveTable(currentWaveTable->waveTable);
         listeningThread = std::thread([this] {
                    while (!stopListening.load()) {
                        // Run the ListenToChanges() function on the message thread
@@ -73,25 +78,29 @@ public:
         
         if(std::abs(params[0]->getValue() - paramComp[0]) > epsilon) {
             float newValue = params[0]->getValue();
-            float newParam = newValue * 0.0001f;
+            float newParam = newValue * 0.001f;
             gain.store(newParam);
             paramComp[0] = newValue;
         }
         if(std::abs(params[1]->getValue() - paramComp[1]) > epsilon) {
             float newValue = params[1]->getValue();
             float overSampleRate = 4096.f / sampleRate;
-            float res = newValue * overSampleRate * 1980 + 20;
+            float res = newValue * overSampleRate * 2000.f;
             frequency.store(res);
             waveTableProcessor->setFrequency(frequency);
             paramComp[1] = newValue;
         }
     }
         
-    void switchWaveTable() {
-        int idx = waveTableIDX->getValue() * 5;
-        // if it changes aquire lock
-        // allocate memory
-        //add to release pool
+    void switchWaveTable(int index) {
+      //  int idx = int(waveTableIDX->getValue() * 5.f);
+        auto newWaveTable = std::make_unique<WaveTables>(index);
+        {
+            std::lock_guard<SpinLock> lock (waveTableLock);
+            std::swap(currentWaveTable,newWaveTable);
+          
+        }
+        //delete oldwavetable
     }
     
     
@@ -124,19 +133,17 @@ public:
         jassert(context.getInputBlock().getNumSamples() == context.getOutputBlock().getNumSamples());
         jassert(context.getInputBlock().getNumChannels() == context.getOutputBlock().getNumChannels());
 
-        const auto& input = context.getInputBlock(); // [9]
+        const auto& input = context.getInputBlock();
         const auto numSamples = (int)input.getNumSamples();
 
-        auto inChannels = prepareChannelPointers(input); // [10]
+        auto inChannels = prepareChannelPointers(input);
 
         using Format = juce::AudioData::Format<juce::AudioData::Float32, juce::AudioData::NativeEndian>;
 
         juce::AudioData::interleaveSamples(juce::AudioData::NonInterleavedSource<Format> { inChannels.data(), registerSize, },
             juce::AudioData::InterleavedDest<Format>      { toBasePointer(interleaved.getChannelPointer(0)), registerSize },
-            numSamples); // [11]
-        //check if wavetable has changed, if messagethread aquired spinlock ?? then lock
-        
-        //swap it if needed
+            numSamples);
+       
         
         
         //fade out and in
@@ -146,19 +153,36 @@ public:
         auto& outputBlock = processContext.getOutputBlock();
         const auto numChannels = outputBlock.getNumChannels();
         const auto numSamples2 = outputBlock.getNumSamples();
-        
+       
         //actual processing
         juce::dsp::SIMDRegister<float> fac = juce::dsp::SIMDRegister<float>::fromNative({gain.load(),gain.load(),gain.load(),gain.load()});
         for(size_t ch = 0; ch < numChannels; ch++) {
             auto* outputSamples = outputBlock.getChannelPointer(ch);
             for(size_t i = 0; i < numSamples2; i++) {
-                new_Gain = fac + pole * juce::dsp::SIMDRegister<float>::fromNative({0.9999f, 0.9999f, 0.9999f, 0.9999f});
+                new_Gain = fac + pole * juce::dsp::SIMDRegister<float>::fromNative({0.999f, 0.999f, 0.999f, 0.999f});
                
                 outputSamples[i] = waveTableProcessor->process() * new_Gain;
                 pole = new_Gain;
             }
         }
-        
+        if(std::unique_lock<SpinLock> tryLock(waveTableLock, std::try_to_lock); tryLock.owns_lock()) {
+            waveTableProcessor->getWaveTable(currentWaveTable->waveTable);
+        } else {
+            juce::dsp::SIMDRegister<float> fac = juce::dsp::SIMDRegister<float>::fromNative({0.f,0.f,0.f,0.f});
+            juce::dsp::SIMDRegister<float> pole2 = juce::dsp::SIMDRegister<float>::fromNative({0.f,0.f,0.f,0.f});
+            juce::dsp::SIMDRegister<float> fadeOutGain = juce::dsp::SIMDRegister<float>::fromNative({1.f,1.f,1.f,1.f});
+            for(size_t ch = 0; ch < numChannels; ch++) {
+                auto* outputSamples = outputBlock.getChannelPointer(ch);
+                for(size_t i = 0; i < numSamples2; i++) {
+                    fadeOutGain = fac + pole2 * juce::dsp::SIMDRegister<float>::fromNative({0.999f, 0.999f, 0.999f, 0.999f});
+                    outputSamples[i] *= fadeOutGain;
+                    pole2 = fadeOutGain;
+                }
+            }
+            
+            
+            
+        }
 
         auto outChannels = prepareChannelPointers(context.getOutputBlock());
 
@@ -193,6 +217,8 @@ private:
     std::thread listeningThread;  // Thread to run the listen loop
     juce::dsp::SIMDRegister<float> pole;
     juce::dsp::SIMDRegister<float> new_Gain;
+    SpinLock waveTableLock;
+    std::unique_ptr<WaveTables> currentWaveTable;
 };
 #endif // JUCE SIMD
 #endif // SIMDPROCESSOR_H

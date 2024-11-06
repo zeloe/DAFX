@@ -119,3 +119,16 @@ target_link_libraries(${TARGET_NAME}
 		juce::juce_recommended_lto_flags
 		juce::juce_recommended_warning_flags
 )
+
+
+
+
+
+# Add a custom command to copy the built VST3 plugin to the PluginVST directory after building
+add_custom_command(
+    TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+    "${PLUGIN_OUTPUT_DIR}"
+    COMMENT "Copying VST3 plugin to ${PLUGIN_OUTPUT_DIR}"
+)

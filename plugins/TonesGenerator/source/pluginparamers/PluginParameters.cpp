@@ -28,14 +28,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginParameter::createParam
                     ));
         }
     
-    for (const auto& param : parameterListChoice) {
+    for (const auto& param : parameterListInt) {
         
-        params.push_back(std::make_unique<juce::AudioParameterChoice>
+        params.push_back(std::make_unique<juce::AudioParameterInt>
        (param.name,
         param.label,
-        param.labels,
+        param.minValue,
+        param.maxValue,
         param.defaultValueInt,
-        juce::AudioParameterChoiceAttributes{}.withAutomatable(param.isAutomatable)
+        juce::AudioParameterIntAttributes{}.withAutomatable(param.isAutomatable)
         ));
     }
     

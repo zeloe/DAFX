@@ -33,17 +33,18 @@ public:
                 { "param_Frequency", "Frequency", 20, 2000, 100, true}
         };
     
-    struct ParameterInfoChoice {
+    struct ParameterInfoInt {
         juce::String name;
         juce::String label;
-        juce::StringArray labels;
+        int minValue;
+        int maxValue;
         int defaultValueInt;
         bool isAutomatable;
     };
     inline static juce::StringArray waveShapesNames = {"Sine","Triangle","Sawtooh","Square","Noise","PinkNoise"};
     
-    inline static std::vector<ParameterInfoChoice> parameterListChoice {
-        {"p_Wavetables", "Waveshapes",waveShapesNames,0,false}
+    inline static std::vector<ParameterInfoInt> parameterListInt {
+        {"p_Wavetables", "Waveshapes",0,5,0,false}
     };
     
     

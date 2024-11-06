@@ -10,7 +10,7 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
-#include "../../../libs/DAFX/FFT/Spectrum_GUI.h"
+#include "GUI.h"
 //==============================================================================
 /**
 */
@@ -27,7 +27,7 @@ public:
    
 private:
     PluginAudioProcessor& audioProcessor;
-   
+    std::unique_ptr<GUI> gui;
     
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginAudioProcessorEditor)
